@@ -1,12 +1,12 @@
 bl_info = {
     "name": "AC Replay Importer",
     "author": "Abhyudaya Chouhan (abchouhan)",
-    "version": (0, 1),
+    "version": (0, 1, 0),
     "blender": (2, 80, 0),
     "location": "3D View > Toolbox > Animation tab > AC Replay Importer",
     "description": "Apply exported AC Replay animation data to objects",
     #"warning": "",
-    #"doc_url": "",
+    "doc_url": "https://github.com/abchouhan/acreplay-parser",
     "category": "Animation",
 }
 
