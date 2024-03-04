@@ -6,7 +6,7 @@ This software consists of two parts: a [parser](#parser) for .acreplay files, an
 
 ## Parser
 ### Usage
-- Download and extract `Replay.Parser.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
+- Download and extract a 'ReplayParser' file from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
 - Open an `.acreplay` file with the `acrp` executable and it will output data for each driver as `.json` files.
 - Import the `.json` files into Blender with the [addon](#addon).
 
