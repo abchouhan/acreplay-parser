@@ -6,9 +6,9 @@ This software consists of two parts: a [parser](#parser) for .acreplay files, an
 
 ## Parser
 ### Usage
-Open an `.acreplay` file with the `acrp` executable and it will output data for each driver as `.json` files.
-<br>
-The `.json` files can then be imported into Blender with the [addon](#addon).
+- Download and extract `Replay.Parser.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
+- Open an `.acreplay` file with the `acrp` executable and it will output data for each driver as `.json` files.
+- Import the `.json` files into Blender with the [addon](#addon).
 
 For more advanced options use the command line:
 ```
@@ -41,13 +41,13 @@ The executable will be located in the 'build' subfolder.
 
 ## Addon
 ### Installation
-- Download `Replay Blender Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
+- Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
 - In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
 - Enable the addon
 
 ### Usage
 - Open the sidebar by going to View > Sidebar, or by pressing the <kbd>N</kbd> key
-- Go to the Animation tab and locate the 'AC Replay Importer' tab
+- Go to the Animation tab and locate the 'AC Replay Importer' dropdown
 - Click 'Import .json' and navigate to the `.json` file(s) outputted by the [parser](#parser)
 - Adjust framerate if necessary
 - Assign the Chassis and Wheel slots appropriately <!-- TODO add video -->
@@ -55,7 +55,7 @@ The executable will be located in the 'build' subfolder.
 ### Building
 Simply zip up the folder to get a file structure like:
 ```
-Replay Blender Importer.zip
+Replay.Blender.Importer.zip
 └── Replay Blender Importer
     ├── __init__.py
     └── ...
