@@ -1,5 +1,5 @@
 # acreplay-parser
-This software consists of two parts: a [parser](#parser) for .acreplay files, and an [addon](#addon) to import the parsed data into Blender.
+This software consists of two parts: a [parser](#parser) for Assetto Corsa replay (.acreplay) files, and an [addon](#addon) to import the parsed data into Blender.
 
 ![Preview](https://github.com/abchouhan/acreplay-parser/assets/21346078/a9b80a66-d797-4846-9450-b21c15aa8d82)
 ![Cockpit](https://github.com/abchouhan/acreplay-parser/assets/21346078/0fc20366-2266-4adc-a2c3-939e418b9602)
