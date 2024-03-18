@@ -1,5 +1,6 @@
 # acreplay-parser
 This software consists of two parts: a [parser](#parser) for Assetto Corsa replay (.acreplay) files, and an [addon](#addon) to import the parsed data into Blender.
+A video guide is available [here](https://youtube.com/watch?v=ZBwSbNptEmM).
 
 ![Preview](https://github.com/abchouhan/acreplay-parser/assets/21346078/a9b80a66-d797-4846-9450-b21c15aa8d82)
 ![Cockpit](https://github.com/abchouhan/acreplay-parser/assets/21346078/0fc20366-2266-4adc-a2c3-939e418b9602)
@@ -50,7 +51,7 @@ The executable will be located in the 'build' subfolder.
 - Go to the Animation tab and locate the 'AC Replay Importer' dropdown
 - Click 'Import .json' and navigate to the `.json` file(s) outputted by the [parser](#parser)
 - Adjust framerate if necessary
-- Assign the Chassis and Wheel slots appropriately <!-- TODO add video -->
+- Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=ZBwSbNptEmM))
 
 ### Building
 Simply zip up the folder to get a file structure like:
