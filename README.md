@@ -25,7 +25,7 @@ acrp [OPTIONS] [INPUT FILE(S)] with options:
 ```
 ### Building
 Requirements:
-- A compiler supporting C++23
+- A compiler supporting [C++23 extended floating-point types](https://en.cppreference.com/w/cpp/types/floating-point) (GCC recommended)
 - CMake
 
 In the 'Replay Parser' folder, run the following command:
