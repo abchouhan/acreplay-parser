@@ -1,4 +1,5 @@
 import json
+from math import ceil
 import bpy
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
@@ -8,7 +9,7 @@ from . import acrp_import
 
 
 class ACRI_OT_import_acrjson(Operator, ImportHelper):
-    bl_idname = "acri.import_acrjson"
+    bl_idname = "acreplay_importer.import_acrjson"
     bl_label = "Import .json"
     bl_description = "Import AC Replay animation data (*.json) that was outputted by AC Replay Parser"
     
@@ -35,13 +36,13 @@ class ACRI_OT_import_acrjson(Operator, ImportHelper):
             self.report({'ERROR'}, "Invalid .json file!")
             return {'CANCELLED'}
 
-        frames = data["numFrames"]
-        hz = data["recordingInterval"]
-
-        if (frames is None) or (hz is None):
+        if "numFrames" not in data or "recordingInterval" not in data:
             self.set_path(context, "")
             self.report({'ERROR'}, "Invalid .json file!")
             return {'CANCELLED'}
+
+        frames = data["numFrames"]
+        hz = data["recordingInterval"]
 
         context.scene.num_frames = frames
         context.scene.recording_interval = hz
@@ -49,7 +50,7 @@ class ACRI_OT_import_acrjson(Operator, ImportHelper):
         return {'FINISHED'}
 
 class ACRI_OT_animate(Operator):
-    bl_idname = "acri.animate"
+    bl_idname = "acreplay_importer.animate"
     bl_label = "Animate"
     bl_description = "Apply animation data to selected objects"
 
@@ -59,10 +60,12 @@ class ACRI_OT_animate(Operator):
         scn = context.scene
         with open(scn.acrjson_filepath, 'r') as f:
             data = json.loads(f.read())
-        acrp_import.animate(scn, data)
+        status = acrp_import.animate(self, scn, data)
 
-        context.window.cursor_modal_restore()
-        return {'FINISHED'}
+        if 'FINISHED' in status:
+            context.window.cursor_modal_restore()
+            scn.frame_end = ceil(scn.target_framerate*scn.num_frames*scn.recording_interval/1000.0)
+        return status
 
 
 classes = (ACRI_OT_import_acrjson,ACRI_OT_animate,)

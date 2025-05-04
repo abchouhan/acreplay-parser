@@ -1,34 +1,34 @@
-#include "../include/UtilsIO.h"
+#include "../include/UtilsIO.hpp"
 
-char *readChars(std::ifstream &inFile, uint32_t size) {
+char *readChars(std::istream &inStream, uint32_t size) {
 	char *ret = new char[size+1];
-	inFile.read(ret, size);
+	inStream.read(ret, size);
 	ret[size] = '\0';
 	return ret;
 }
 
-std::string readString(std::ifstream &inFile, uint32_t size) {
-	char *chars = readChars(inFile, size);
+std::string readString(std::istream &inStream, uint32_t size) {
+	char *chars = readChars(inStream, size);
 	std::string ret = chars;
 	delete[] chars;
 	return ret;
 }
 
 template <>
-char *readValue<char *>(std::ifstream &inFile) {
+char *readValue<char *>(std::istream &inStream) {
 	uint32_t size;
-	inFile.read(reinterpret_cast<char*>(&size), sizeof(size));
-	return readChars(inFile, size);
+	inStream.read(reinterpret_cast<char*>(&size), sizeof(size));
+	return readChars(inStream, size);
 }
 
 template <>
-std::string readValue<std::string>(std::ifstream &inFile) {
+std::string readValue<std::string>(std::istream &inStream) {
 	uint32_t size;
-	inFile.read(reinterpret_cast<char*>(&size), sizeof(size));
-	return readString(inFile, size);
+	inStream.read(reinterpret_cast<char*>(&size), sizeof(size));
+	return readString(inStream, size);
 }
 
-std::ofstream getOutStreamFromPath(std::string path, std::string extension) {
+std::ofstream getOutStreamFromPath(std::string path, std::string_view extension) {
 	std::ofstream outFile(path, std::ofstream::out|std::ios::in);
 	std::string newPath = path;
 

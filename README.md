@@ -26,25 +26,29 @@ acrp [OPTIONS] [INPUT FILE(S)] with options:
 ### Building
 Requirements:
 - A compiler supporting [C++23 extended floating-point types](https://en.cppreference.com/w/cpp/types/floating-point) (GCC recommended)
+- [zlib](https://github.com/madler/zlib)
 - CMake
 
 In the 'Replay Parser' folder, run the following command:
 ```
-mkdir build && cd build && cmake ..
+cmake -B build -S .
 ```
 This will create a `Makefile` in the 'build' subfolder.
 <br>
-Use a compiler of choice to finish building the executable. For example:
+Finish building the executable:
 ```
-make
+cmake --build build --parallel
 ```
 The executable will be located in the 'build' subfolder.
 
 ## Addon
 ### Installation
-- Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
-- In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
-- Enable the addon
+- For Blender versions >= 4.2.0
+  - Download through [Blender Extensions](#)
+- For Blender versions >= 3.0.0
+  - Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
+  - In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
+  - Enable the addon
 
 ### Usage
 - Open the sidebar by going to View > Sidebar, or by pressing the <kbd>N</kbd> key
@@ -54,10 +58,11 @@ The executable will be located in the 'build' subfolder.
 - Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=ZBwSbNptEmM))
 
 ### Building
-Simply zip up the folder to get a file structure like:
+#### For Blender 4.2.0 and beyond
+In the 'Replay Blender Importer' folder, run the following command:
 ```
-Replay.Blender.Importer.zip
-└── Replay Blender Importer
-    ├── __init__.py
-    └── ...
+blender --command extension build
 ```
+This creates a zip file 'acreplay_importer-x.x.x.zip' which can be installed in Blender.
+#### For Blender 3.0.0-4.1.x
+See the [3.0.0 branch](#)

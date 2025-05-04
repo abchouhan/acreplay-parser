@@ -1,52 +1,315 @@
-#include "../include/UtilsIO.h"
-#include "../include/ACReplayParser.h"
-#include <cstdint>
+#include "../include/ACReplayParser.hpp"
 
-std::vector<std::string> getDriverNames(std::ifstream &inFile) {
-	int originalPos = inFile.tellg();
-	std::vector<std::string> names;
+std::optional<uint32_t> getCSPDataOffset(std::ifstream &inFile) {
+	size_t originalPos = inFile.tellg();
 
-	inFile.seekg(-31, std::ios_base::end);
-	std::string str = readString(inFile, 23);
+	// Go to the end of the file, search for target footer string
+	inFile.seekg(-POSTFIX_STR.length()-8, std::ios_base::end);
+	std::string str = readString(inFile, POSTFIX_STR.length());
 
-	if (str == "__AC_SHADERS_PATCH_v1__") {
-		// Setup stream position to read .ini metadata
-		int32_t extraDataStartOffset = readValue<int32_t>(inFile);
-		if (readValue<int32_t>(inFile) == 1) {
-			inFile.seekg(extraDataStartOffset, std::ios_base::beg);
-			while (true) {
-				int32_t len = readValue<int32_t>(inFile);
-				if (len > 255) {
-					break;
-				}
-				inFile.seekg(len, std::ios_base::cur);
-			}
-			inFile.seekg(-4, std::ios_base::cur);
-			std::string ini = readValue<std::string>(inFile);
-
-			// Find and loop through all driver name strings and add each to names vector
-			std::string substring = "DRIVER_NAME=";
-			size_t startIndex = ini.find(substring, 0);
-			while (startIndex != std::string::npos) {
-				startIndex += substring.length();
-				size_t endIndex = ini.find("\n", startIndex);
-
-				// Remove single-quotes from driver name string
-				std::string name = ini.substr(startIndex, endIndex-startIndex);
-				if (name[0] == '\'' && name[name.length()-1] == '\'') {
-					names.push_back((name.substr(1, name.length()-2)));
-				} else {
-					names.push_back(name);
-				}
-				startIndex = ini.find(substring, startIndex+1);
-			}
+	if (str == POSTFIX_STR) {
+		uint32_t offset = readValue<uint32_t>(inFile);
+		if (readValue<uint32_t>(inFile) == 1) { // Version 1
+			inFile.seekg(originalPos, std::ios_base::beg);
+			return offset;
 		}
 	}
+	inFile.seekg(originalPos, std::ios_base::beg);
+	return {};
+}
+
+std::vector<std::string> getDriverNames(std::ifstream &inFile, uint32_t offset, int numDrivers) {
+	size_t originalPos = inFile.tellg();
+	inFile.seekg(offset, std::ios_base::beg);
+
+	std::vector<std::string> names;
+	names.reserve(numDrivers);
+
+	// Skip until .ini data located (string length > 255)
+	while (true) {
+		uint32_t len = readValue<uint32_t>(inFile);
+		if (len > 255) { break; }
+		inFile.seekg(len, std::ios_base::cur);
+	}
+
+	inFile.seekg(-4, std::ios_base::cur);
+	std::string ini = readValue<std::string>(inFile);
+
+	// Find and loop through all driver name strings and add each to names vector
+	int index = 0;
+	size_t startIndex = ini.find(DRIVER_NAME_INI_STR);
+	while (startIndex != std::string::npos && index < numDrivers) {
+		startIndex += DRIVER_NAME_INI_STR.length();
+		size_t endIndex = ini.find("\n", startIndex);
+
+		// Remove single-quotes from driver name string
+		std::string name = ini.substr(startIndex, endIndex-startIndex);
+		if (name[0] == '\'' && name[name.length()-1] == '\'') {
+			names.push_back((name.substr(1, name.length()-2)));
+		} else {
+			names.push_back(name);
+		}
+		startIndex = ini.find(DRIVER_NAME_INI_STR, startIndex+1);
+		index++;
+	}
+
 	inFile.seekg(originalPos, std::ios_base::beg);
 	return names;
 }
 
-void readAndOutput(std::string inPath, std::string outPath, std::string targetDriverName) {
+// TODO: Not ideal to use addresses to iterate over the frames
+void outputCarFrames(std::ostream &outStream, CarFrame *frames, uint32_t numFrames) {
+	// Need to compute size of CarFrame manually due to use of bit-fields
+	unsigned int stride = (std::ptrdiff_t)&(frames[1])-(std::ptrdiff_t)&(frames[0]);
+
+	outputToFile<float>(outStream, &(frames[0].position.x), stride, numFrames, "x");
+	outputToFile<float>(outStream, &(frames[0].position.y), stride, numFrames, "y");
+	outputToFile<float>(outStream, &(frames[0].position.z), stride, numFrames, "z");
+	outputToFile<std::float16_t>(outStream, &(frames[0].rotation.x), stride, numFrames, "rotX");
+	outputToFile<std::float16_t>(outStream, &(frames[0].rotation.y), stride, numFrames, "rotY");
+	outputToFile<std::float16_t>(outStream, &(frames[0].rotation.z), stride, numFrames, "rotZ");
+
+	unsigned int interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticPosition[1].x)-(std::ptrdiff_t)&(frames[0].wheelStaticPosition[0].x);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelStaticPosition[0].x), 4, interArrayStride, stride, numFrames, "wheelStaticX");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticPosition[1].y)-(std::ptrdiff_t)&(frames[0].wheelStaticPosition[0].y);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelStaticPosition[0].y), 4, interArrayStride, stride, numFrames, "wheelStaticY");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticPosition[1].z)-(std::ptrdiff_t)&(frames[0].wheelStaticPosition[0].z);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelStaticPosition[0].z), 4, interArrayStride, stride, numFrames, "wheelStaticZ");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticRotation[1].x)-(std::ptrdiff_t)&(frames[0].wheelStaticRotation[0].x);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelStaticRotation[0].x), 4, interArrayStride, stride, numFrames, "wheelStaticRotX");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticRotation[1].y)-(std::ptrdiff_t)&(frames[0].wheelStaticRotation[0].y);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelStaticRotation[0].y), 4, interArrayStride, stride, numFrames, "wheelStaticRotY");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelStaticRotation[1].z)-(std::ptrdiff_t)&(frames[0].wheelStaticRotation[0].z);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelStaticRotation[0].z), 4, interArrayStride, stride, numFrames, "wheelStaticRotZ");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelPosition[1].x)-(std::ptrdiff_t)&(frames[0].wheelPosition[0].x);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelPosition[0].x), 4, interArrayStride, stride, numFrames, "wheelX");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelPosition[1].y)-(std::ptrdiff_t)&(frames[0].wheelPosition[0].y);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelPosition[0].y), 4, interArrayStride, stride, numFrames, "wheelY");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelPosition[1].z)-(std::ptrdiff_t)&(frames[0].wheelPosition[0].z);
+	outputArrayToFile<float>(outStream, &(frames[0].wheelPosition[0].z), 4, interArrayStride, stride, numFrames, "wheelZ");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelRotation[1].x)-(std::ptrdiff_t)&(frames[0].wheelRotation[0].x);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelRotation[0].x), 4, interArrayStride, stride, numFrames, "wheelRotX");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelRotation[1].y)-(std::ptrdiff_t)&(frames[0].wheelRotation[0].y);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelRotation[0].y), 4, interArrayStride, stride, numFrames, "wheelRotY");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelRotation[1].z)-(std::ptrdiff_t)&(frames[0].wheelRotation[0].z);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelRotation[0].z), 4, interArrayStride, stride, numFrames, "wheelRotZ");
+
+	outputToFile<std::float16_t>(outStream, &(frames[0].velocity.x), stride, numFrames, "velocityX");
+	outputToFile<std::float16_t>(outStream, &(frames[0].velocity.y), stride, numFrames, "velocityY");
+	outputToFile<std::float16_t>(outStream, &(frames[0].velocity.z), stride, numFrames, "velocityZ");
+
+	outputToFile<std::float16_t>(outStream, &(frames[0].rpm), stride, numFrames, "rpm");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].wheelAngularVelocity[1])-(std::ptrdiff_t)&(frames[0].wheelAngularVelocity[0]);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].wheelAngularVelocity[0]), 4, interArrayStride, stride, numFrames, "wheelAngularVelocity");
+	interArrayStride = (std::ptrdiff_t)&(frames[0].slipAngle[1])-(std::ptrdiff_t)&(frames[0].slipAngle[0]);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].slipAngle[0]), 4, interArrayStride, stride, numFrames, "slipAngle");
+	interArrayStride = (std::ptrdiff_t)&(frames[0].slipRatio[1])-(std::ptrdiff_t)&(frames[0].slipRatio[0]);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].slipRatio[0]), 4, interArrayStride, stride, numFrames, "slipRatio");
+	interArrayStride = (std::ptrdiff_t)&(frames[0].ndSlip[1])-(std::ptrdiff_t)&(frames[0].ndSlip[0]);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].ndSlip[0]), 4, interArrayStride, stride, numFrames, "ndSlip");
+	interArrayStride = (std::ptrdiff_t)&(frames[0].load[1])-(std::ptrdiff_t)&(frames[0].load[0]);
+	outputArrayToFile<std::float16_t>(outStream, &(frames[0].load[0]), 4, interArrayStride, stride, numFrames, "load");
+
+	outputToFile<std::float16_t>(outStream, &(frames[0].steerAngle), stride, numFrames, "steerAngle");
+	outputToFile<std::float16_t>(outStream, &(frames[0].bodyworkNoise), stride, numFrames, "bodyworkNoise");
+	outputToFile<std::float16_t>(outStream, &(frames[0].drivetrainSpeed), stride, numFrames, "drivetrainSpeed");
+	outputToFile<uint32_t>(outStream, &(frames[0].currentLapTime), stride, numFrames, "currentLapTime");
+	outputToFile<uint32_t>(outStream, &(frames[0].lastLapTime), stride, numFrames, "lastLapTime");
+	outputToFile<uint32_t>(outStream, &(frames[0].bestLapTime), stride, numFrames, "bestLapTime");
+	outputToFile<uint8_t>(outStream, &(frames[0].fuel), stride, numFrames, "fuel");
+	outputToFile<uint8_t>(outStream, &(frames[0].fuelPerLap), stride, numFrames, "fuelPerLap");
+	outputToFile<uint8_t>(outStream, &(frames[0].gear), stride, numFrames, "gear");
+
+	interArrayStride = (std::ptrdiff_t)&(frames[0].tireDirt[1])-(std::ptrdiff_t)&(frames[0].tireDirt[0]);
+	outputArrayToFile<uint8_t>(outStream, &(frames[0].tireDirt[0]), 4, interArrayStride, stride, numFrames, "tireDirt");
+
+	outputToFile<uint8_t>(outStream, &(frames[0].damageFrontDeformation), stride, numFrames, "damageFrontDeformation");
+	outputToFile<uint8_t>(outStream, &(frames[0].damageRear), stride, numFrames, "damageRear");
+	outputToFile<uint8_t>(outStream, &(frames[0].damageLeft), stride, numFrames, "damageLeft");
+	outputToFile<uint8_t>(outStream, &(frames[0].damageRight), stride, numFrames, "damageRight");
+	outputToFile<uint8_t>(outStream, &(frames[0].damageFront), stride, numFrames, "damageFront");
+	outputToFile<uint8_t>(outStream, &(frames[0].gas), stride, numFrames, "gas");
+	outputToFile<uint8_t>(outStream, &(frames[0].brake), stride, numFrames, "brake");
+	outputToFile<uint8_t>(outStream, &(frames[0].currentLap), stride, numFrames, "currentLap");
+
+	outStream << "\"horn\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].horn ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"cameraDir\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << frames[i].cameraDir;
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"gearboxBeingDamaged\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].gearboxBeingDamaged ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"lights\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].lights ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n";
+
+	outputToFile<uint8_t>(outStream, &(frames[0].dirt), stride, numFrames, "dirt");
+	outputToFile<uint8_t>(outStream, &(frames[0].engineHealth), stride, numFrames, "engineHealth");
+	outputToFile<uint8_t>(outStream, &(frames[0].boost), stride, numFrames, "boost");
+}
+void outputExtraCarFrames_v6(std::ostream &outStream, CarFrameExtra_v6 *frames, uint32_t numFrames) {
+	// Need to compute size of CarFrame manually due to use of bit-fields
+	unsigned int stride = (std::ptrdiff_t)&(frames[1])-(std::ptrdiff_t)&(frames[0]);
+
+	outputToFile<uint8_t>(outStream, &(frames[0].wipers), stride, numFrames, "wipers");
+	outStream << "\"turnSignals\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << frames[i].turnSignals;
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"lowBeams\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].lowBeams ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionA\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionA ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionB\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionB ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionC\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionC ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionD\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionD ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionE\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionE ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionF\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionF ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionG\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionG ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionH\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionH ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionI\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionI ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionJ\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionJ ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n";
+	outputToFile<uint8_t>(outStream, &(frames[0].handbrake), stride, numFrames, "handbrake");
+	outputToFile<uint8_t>(outStream, &(frames[0].clutch), stride, numFrames, "clutch", false);
+}
+void outputExtraCarFrames_v7(std::ostream &outStream, CarFrameExtra_v7 *frames, uint32_t numFrames) {
+	// Need to compute size of CarFrame manually due to use of bit-fields
+	unsigned int stride = (std::ptrdiff_t)&(frames[1])-(std::ptrdiff_t)&(frames[0]);
+
+	outputToFile<uint8_t>(outStream, &(frames[0].wipers), stride, numFrames, "wipers");
+	outStream << "\"turnSignals\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << frames[i].turnSignals;
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"lowBeams\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].lowBeams ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionA\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionA ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionB\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionB ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionC\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionC ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionD\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionD ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionE\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionE ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionF\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionF ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionG\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionG ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionH\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionH ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionI\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionI ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n\"extraOptionJ\": [";
+	for (int i = 0; i < numFrames; i++) {
+		outStream << (frames[i].extraOptionJ ? "true" : "false");
+		if (i < numFrames-1) outStream << ", ";
+	}
+	outStream << "],\n";
+	outputToFile<uint8_t>(outStream, &(frames[0].handbrake), stride, numFrames, "handbrake");
+	outputToFile<uint8_t>(outStream, &(frames[0].clutch), stride, numFrames, "clutch", false);
+}
+
+void readAndOutput(std::string const inPath, std::string_view const outPath, std::string_view const targetDriverName) {
 	std::ifstream inFile(inPath, std::ios::binary);
 
 	if (!inFile) {
@@ -56,165 +319,92 @@ void readAndOutput(std::string inPath, std::string outPath, std::string targetDr
 		std::cout << inPath << std::endl;
 	}
 
-	int32_t version = readValue<int32_t>(inFile);
+	uint32_t version = readValue<uint32_t>(inFile);
 	std::cout << "Version: " << version << std::endl;
 	if (version != 16) {
-		std::cerr << "Only version 16 .acreplay files are supported at this time." << std::endl;
+		std::cerr << "Only version 16 .acreplay files are supported at this time" << std::endl;
 		return;
 	}
 
-	double recordingIntervalMs = readValue<double>(inFile);
-	std::cout << "Recording Interval: " << recordingIntervalMs << " ms" << std::endl;
-	std::cout << "Recording Quality (FPS): " << 1000.0 / recordingIntervalMs << " Hz" << std::endl;
+	// Read file header
+	Header header = {
+		.version = version,
+		.recordingInterval =		readValue<double>(inFile),
+		.weather =					readValue<std::string>(inFile),
+		.track =					readValue<std::string>(inFile),
+		.trackConfig =				readValue<std::string>(inFile),
+		.numCars =					readValue<uint32_t>(inFile),
+		.currentRecordingIndex =	readValue<uint32_t>(inFile),
+		.numFrames =				readValue<uint32_t>(inFile),
+		.numTrackObjects =			readValue<uint32_t>(inFile),
+	};
 
-	printValue<std::string>(inFile, "Weather ID: ");
-	printValue<std::string>(inFile, "Track ID: ");
-	printValue<std::string>(inFile, "Track Config: ");
+	std::cout << "Recording Interval: " << header.recordingInterval << " ms" << std::endl;
+	std::cout << "Weather: " << header.weather << std::endl;
+	std::cout << "Track: " << header.track << std::endl;
+	std::cout << "Track Config: " << header.trackConfig << std::endl;
+	std::cout << "Number of Cars: " << header.numCars << std::endl;
+	std::cout << "Number of Frames: " << header.numFrames << std::endl;
 
-	int32_t numCars = readValue<int32_t>(inFile);
-	std::cout << "Number of Cars: " << numCars << std::endl;
-	inFile.seekg(4, std::ios_base::cur);
+	std::optional<uint32_t> cspOffset = getCSPDataOffset(inFile);
+	if (cspOffset.has_value()) {
+		// Print all driver names
+		bool driverFound = false;
+		std::cout << "Driver Names: " << std::endl;
+		std::vector<std::string> names = getDriverNames(inFile, cspOffset.value(), header.numCars);
+		for (size_t i = 0; i < names.size(); i++) {
+			if (targetDriverName == names[i]) {
+				std::cout << "\t" << names[i] << "\t<< SELECTED" << std::endl;
+				driverFound = true;
+			} else {
+				std::cout << "\t" << names[i] << std::endl;
+			}
+		}
 
-	// Print all driver names and track target driver's index in the file
-	int targetIndex = -1;
-	bool driverFound = false;
-	std::cout << "Driver Names: " << std::endl;
-	std::vector<std::string> names = getDriverNames(inFile);
-	for (unsigned long i = 0; i < names.size(); i++) {
-		if (targetDriverName == names[i]) {
-			std::cout << "\t" << names[i] << "\t<< SELECTED" << std::endl;
-			targetIndex = i;
-			driverFound = true;
-		} else {
-			std::cout << "\t" << names[i] << std::endl;
+		if (!driverFound && !targetDriverName.empty()) {
+			std::cout << "Driver \"" << targetDriverName << "\" was not found!" << std::endl;
+			return;
 		}
 	}
 
-	if (!driverFound && !targetDriverName.empty() && targetDriverName != "all") {
-		std::cout << "Driver \"" << targetDriverName << "\" was not found!" << std::endl;
-		return;
-	}
-
-	int32_t numFrames = readValue<int32_t>(inFile);
-	std::cout << "Number of Frames: " << numFrames << std::endl;
-
-	int32_t numTrackObjects = readValue<int32_t>(inFile);
-	std::cout << "Number of Track Objects: " << numTrackObjects << std::endl;
-
 	// Skip sun angles and track object data
-	inFile.seekg((2 + 2 + 12 * numTrackObjects) * numFrames, std::ios_base::cur);
+	inFile.seekg((2 + 2 + 12 * header.numTrackObjects) * header.numFrames, std::ios_base::cur);
 
-	for (int c = 0; c < numCars; c++) {
-		// If targetIndex is set and has already been handled by the loop, then break
-		if (targetIndex >= 0 && c > targetIndex) break;
-
-		std::string carId				= readValue<std::string>(inFile);
-		std::string driverName			= readValue<std::string>(inFile);
-		std::string nationCode			= readValue<std::string>(inFile);
-		std::string driverTeam			= readValue<std::string>(inFile);
-		std::string carSkinId			= readValue<std::string>(inFile);
-		int32_t frames					= readValue<int32_t>(inFile);
-		int32_t bufferIncrementValue	= readValue<int32_t>(inFile);
+	for (int c = 0; c < header.numCars; c++) {
+		CarHeader carHeader = {
+			.carID =		readValue<std::string>(inFile),
+			.driverName =	readValue<std::string>(inFile),
+			.nationCode =	readValue<std::string>(inFile),
+			.driverTeam =	readValue<std::string>(inFile),
+			.carSkinID =	readValue<std::string>(inFile),
+			.numFrames =	readValue<uint32_t>(inFile),
+			.numWings =		readValue<uint32_t>(inFile)
+		};
 
 		// If targetIndex is set but it is not the current iteration of the loop,
 		// then setup inFile stream position to next driver
-		if (c != targetIndex && targetIndex > -1) {
-			inFile.seekg(20+(255+(21+bufferIncrementValue*4))*(frames-1)+(255+(5+bufferIncrementValue*4)), std::ios_base::cur);
+		if (!targetDriverName.empty() && targetDriverName != carHeader.driverName) {
+			inFile.seekg(20+(255+(21+carHeader.numWings*4))*(carHeader.numFrames-1)
+				+ (255+(5+carHeader.numWings*4)), std::ios_base::cur);
 			continue;
 		}
 
-		std::cout << "\nCar ID: " << carId << std::endl;
-		std::cout << "Driver Name: " << driverName << std::endl;
-		std::cout << "Nation Code: " << nationCode << std::endl;
-		std::cout << "Driver Team: " << driverTeam << std::endl;
-		std::cout << "Car Skin ID: " << carSkinId << std::endl;
+		std::cout << "\nCar ID: " << carHeader.carID << std::endl;
+		std::cout << "Driver Name: " << carHeader.driverName << std::endl;
+		std::cout << "Nation Code: " << carHeader.nationCode << std::endl;
+		std::cout << "Driver Team: " << carHeader.driverTeam << std::endl;
+		std::cout << "Car Skin ID: " << carHeader.carSkinID << std::endl;
 
 		inFile.seekg(20, std::ios_base::cur);
 
-		// Allocate space for variables for each frame
-		std::vector<float> x(frames);						// X, Y (up), Z positions for vehicle body
-		std::vector<float> y(frames);
-		std::vector<float> z(frames);
-		std::vector<std::float16_t> rotX(frames);			// X, Y, Z euler angle rotations for vehicle body in radians
-		std::vector<std::float16_t> rotY(frames);
-		std::vector<std::float16_t> rotZ(frames);
-		// Wheel data are 2D vectors with indexes 0: front left wheel, 1: front right wheel, 2: rear left wheel, 3: rear right wheel
-		std::vector<std::vector<float>> wheelX(4, std::vector<float> (frames));							// X, Y (up), Z positions for each wheel
-		std::vector<std::vector<float>> wheelY(4, std::vector<float> (frames));
-		std::vector<std::vector<float>> wheelZ(4, std::vector<float> (frames));
-		std::vector<std::vector<std::float16_t>> wheelRotX(4, std::vector<std::float16_t> (frames));	// X, Y, Z euler angle rotations for each wheel in radians
-		std::vector<std::vector<std::float16_t>> wheelRotY(4, std::vector<std::float16_t> (frames));
-		std::vector<std::vector<std::float16_t>> wheelRotZ(4, std::vector<std::float16_t> (frames));
-
-		// Modifies the wheel rotation along the X-axis for smooth movement
-		std::vector<std::vector<std::float16_t>> wheelRotXModifier(4, std::vector<std::float16_t> (frames));
-
-		std::vector<std::float16_t> speedX(frames);			// Speed along the X-axis in m/s
-		std::vector<std::float16_t> speedZ(frames);			// Speed along the Z-axis in m/s
-		std::vector<std::float16_t> rpm(frames);			// Engine RPM
-		std::vector<std::float16_t> steering(frames);		// Steering wheel rotation in degrees
-
-		std::vector<uint8_t> fuel(frames);					// Fuel amount from 0 to 255
-		std::vector<uint8_t> gear(frames);					// 0: reverse, 1: neutral, 2: 1st gear, 3: 2nd gear, etc.
-		std::vector<std::float16_t> damageFront(frames);	// Damage to the front of the vehicle
-		std::vector<std::float16_t> damageRear(frames);		// Damage to the rear  of the vehicle
-		std::vector<uint8_t> gas(frames);					// 0 (gas   pedal not pressed) to 255 (gas   pedal fully pressed)
-		std::vector<uint8_t> brake(frames);					// 0 (brake pedal not pressed) to 255 (brake pedal fully pressed)
-		std::vector<uint8_t> headlights(frames);			// 0: off, 1: on
-		std::vector<uint8_t> boost(frames);					// Boost (turbo) amount from 0 to 255
-		uint8_t temp;
-
-		for (int i = 0; i < frames; i++) {
-			x[i] =  readValue<float>(inFile);
-			y[i] =  readValue<float>(inFile);
-			z[i] = -readValue<float>(inFile);
-			rotY[i] = -readValue<std::float16_t>(inFile);
-			rotX[i] = -readValue<std::float16_t>(inFile);
-			rotZ[i] =  readValue<std::float16_t>(inFile);
-
-			inFile.seekg(2, std::ios_base::cur);
-			inFile.seekg(48, std::ios_base::cur); // Skip brake disc positions
-
-			// Read wheel data for four wheels
-			for (int j = 0; j < 4; j++) {
-				wheelRotY[j][i] = -readValue<std::float16_t>(inFile);
-				inFile.seekg(2, std::ios_base::cur);
-				wheelRotZ[j][i] =  readValue<std::float16_t>(inFile);
-			}
-			for (int j = 0; j < 4; j++) {
-				wheelX[j][i] =  readValue<float>(inFile);
-				wheelY[j][i] =  readValue<float>(inFile);
-				wheelZ[j][i] = -readValue<float>(inFile);
-			}
-			for (int j = 0; j < 4; j++) {
-				inFile.seekg(2, std::ios_base::cur);
-				wheelRotX[j][i]			= -readValue<std::float16_t>(inFile);
-				wheelRotXModifier[j][i] = -readValue<std::float16_t>(inFile);
-			}
-			speedZ[i] = -readValue<std::float16_t>(inFile);
-			inFile.seekg(2, std::ios_base::cur);
-			speedX[i] = -readValue<std::float16_t>(inFile);
-			rpm[i] = readValue<std::float16_t>(inFile);
-			inFile.seekg(4*10, std::ios_base::cur);
-			steering[i] = -readValue<std::float16_t>(inFile);
-			inFile.seekg(2+4*4, std::ios_base::cur);
-			fuel[i] = readValue<uint8_t>(inFile);
-			inFile.seekg(1, std::ios_base::cur);
-			gear[i] = readValue<uint8_t>(inFile);
-			inFile.seekg(5, std::ios_base::cur);
-			damageRear[i]  = readValue<std::float16_t>(inFile);
-			damageFront[i] = readValue<std::float16_t>(inFile);
-			gas[i]	 = readValue<uint8_t>(inFile);
-			brake[i] = readValue<uint8_t>(inFile);
-			inFile.seekg(2, std::ios_base::cur);
-			temp = readValue<uint8_t>(inFile);
-			headlights[i] = (temp & 0x04) >> 2;
-			inFile.seekg(5, std::ios_base::cur);
-			boost[i] = readValue<uint8_t>(inFile);
-			if (i < frames-1) {
-				inFile.seekg(21+bufferIncrementValue*4, std::ios_base::cur);
+		CarFrame *frames = new CarFrame[carHeader.numFrames];
+		for (int i = 0; i < carHeader.numFrames; i++) {
+			CarFrame frame = readValue<CarFrame>(inFile);
+			frames[i] = frame;
+			if (i < carHeader.numFrames-1) {
+				inFile.seekg(20+carHeader.numWings*4, std::ios_base::cur);
 			} else {
-				inFile.seekg(5+bufferIncrementValue*4, std::ios_base::cur);
+				inFile.seekg(4+carHeader.numWings*4, std::ios_base::cur);
 			}
 		}
 
@@ -224,41 +414,98 @@ void readAndOutput(std::string inPath, std::string outPath, std::string targetDr
 		if (outPath.empty() || outPath.find_last_of("/\\") == outPath.length()-1) {
 			out << inPath.substr(0, inPath.find_last_of('.')).substr(inPath.find_last_of("/\\") + 1);
 		}
-		if (targetDriverName.empty()) out << "_" << driverName;
+		if (targetDriverName.empty()) out << "_" << carHeader.driverName;
 		out << ".json";
 
 		std::ofstream outFile = getOutStreamFromPath(out.str(), ".json");
-
 		outFile << "{" << std::endl;
-		outFile << "\"numFrames\": " << frames << "," << std::endl;
-		outFile << "\"recordingInterval\": " << recordingIntervalMs << "," << std::endl;
-		outputVectorToFile(outFile, x, "x");
-		outputVectorToFile(outFile, y, "y");
-		outputVectorToFile(outFile, z, "z");
-		outputVectorToFile(outFile, rotX, "rotX");
-		outputVectorToFile(outFile, rotY, "rotY");
-		outputVectorToFile(outFile, rotZ, "rotZ");
-		outputVectorToFile(outFile, wheelX, "wheelX");
-		outputVectorToFile(outFile, wheelY, "wheelY");
-		outputVectorToFile(outFile, wheelZ, "wheelZ");
-		outputVectorToFile(outFile, wheelRotX, "wheelRotX");
-		outputVectorToFile(outFile, wheelRotY, "wheelRotY");
-		outputVectorToFile(outFile, wheelRotZ, "wheelRotZ");
-		outputVectorToFile(outFile, wheelRotXModifier, "wheelRotXModifier");
-		outputVectorToFile(outFile, speedX, "speedX");
-		outputVectorToFile(outFile, speedZ, "speedZ");
-		outputVectorToFile(outFile, rpm, "rpm");
-		outputVectorToFile(outFile, steering, "steering");
-		outputVectorToFile(outFile, fuel, "fuel");
-		outputVectorToFile(outFile, gear, "gear");
-		outputVectorToFile(outFile, damageFront, "damageFront");
-		outputVectorToFile(outFile, damageRear, "damageRear");
-		outputVectorToFile(outFile, gas, "gas");
-		outputVectorToFile(outFile, brake, "brake");
-		outputVectorToFile(outFile, headlights, "headlights");
-		outputVectorToFile(outFile, boost, "boost", false);
-		outFile << "}" << std::endl;
+		outFile << "\"numFrames\": " << carHeader.numFrames << "," << std::endl;
+		outFile << "\"recordingInterval\": " << header.recordingInterval << "," << std::endl;
+		outputCarFrames(outFile, frames, carHeader.numFrames);
+		delete[] frames;
 
+		// Read CSP extra car data
+		if (cspOffset.has_value()) {
+			size_t originalPos = inFile.tellg();
+			inFile.seekg(cspOffset.value(), std::ios_base::beg);
+
+			int version = -1;
+			uint32_t bytesPerFrame = 0;
+			// Skip until extra car data located
+			while (true) {
+				uint32_t len = readValue<uint32_t>(inFile);
+				size_t resetPos = inFile.tellg();
+				if (readString(inFile, EXT_PERCAR_STR.length()) == EXT_PERCAR_STR) {
+					inFile.seekg(-EXT_PERCAR_STR.length(), std::ios_base::cur);
+					std::string tag = readString(inFile, len);
+					int versionIndex = tag.find("_v")+2;
+					int separatorIndex = tag.find(":");
+
+					std::string versionStr = tag.substr(versionIndex, separatorIndex-versionIndex);
+					std::string carIndexStr = tag.substr(separatorIndex+1, len-separatorIndex-1);
+					try {
+						version = std::stoi(versionStr);
+						int carIndex = std::stoi(carIndexStr);
+						if (version > 0 && version <= EXT_PERCAR_BYTES_PER_FRAME.size()) {
+							bytesPerFrame = EXT_PERCAR_BYTES_PER_FRAME[version-1];
+						}
+						if (c == carIndex) {
+							if (bytesPerFrame == 0) {
+								std::cerr << "Unsupported EXT_PERCAR version: " << version << std::endl;
+							}
+							break;
+						}
+					} catch (...) {
+						std::cerr << "Malformed data encountered at offset " <<
+							std::hex << inFile.tellg() << std::dec <<
+						std::endl;
+						break;
+					}
+				}
+				inFile.seekg(resetPos+len, std::ios_base::beg);
+			}
+
+			// If it exists, read and output extra data
+			if (version >= 0 && version <= EXT_PERCAR_VERSION_COUNT && bytesPerFrame > 0) {
+				uint32_t compressedSize = readValue<uint32_t>(inFile);
+				uint8_t *compressedData = new uint8_t[compressedSize];
+				readValueArray(inFile, compressedSize, compressedData);
+
+				unsigned long uncompressedSize = bytesPerFrame*header.numFrames;
+				uint8_t *uncompressedData = new uint8_t[uncompressedSize];
+				int status = uncompress(uncompressedData, &uncompressedSize, compressedData, compressedSize);
+				if (status != Z_OK) {
+					std::cerr << "Decompression failed with error code " << status << std::endl;
+				}
+
+				// Read uncompressed data as a stream without copying
+				std::ispanstream inStreamPerCar(
+					std::span<char>(reinterpret_cast<char *>(uncompressedData), uncompressedSize),
+					std::ios::binary);
+
+				switch (version) {
+					default: break;
+					case 6: {
+						CarFrameExtra_v6 *extraFrames = new CarFrameExtra_v6[carHeader.numFrames];
+						readValueArray(inStreamPerCar, carHeader.numFrames, extraFrames);
+						outputExtraCarFrames_v6(outFile, extraFrames, carHeader.numFrames);
+						delete[] extraFrames;
+						break;
+					}
+					case 7: {
+						CarFrameExtra_v7 *extraFrames = new CarFrameExtra_v7[carHeader.numFrames];
+						readValueArray(inStreamPerCar, carHeader.numFrames, extraFrames);
+						outputExtraCarFrames_v7(outFile, extraFrames, carHeader.numFrames);
+						delete[] extraFrames;
+						break;
+					}
+				}
+				delete[] uncompressedData;
+				delete[] compressedData;
+			}
+			inFile.seekg(originalPos, std::ios_base::beg);
+		}
+		outFile << "}" << std::endl;
 		outFile.close();
 		std::cout << "Done!" << std::endl;
 	}

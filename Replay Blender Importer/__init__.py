@@ -1,15 +1,3 @@
-bl_info = {
-    "name": "AC Replay Importer",
-    "author": "Abhyudaya Chouhan (abchouhan)",
-    "version": (0, 1, 0),
-    "blender": (2, 80, 0),
-    "location": "3D View > Toolbox > Animation tab > AC Replay Importer",
-    "description": "Apply exported AC Replay animation data to objects",
-    #"warning": "",
-    "doc_url": "https://github.com/abchouhan/acreplay-parser",
-    "category": "Animation",
-}
-
 import bpy
 from bpy.props import StringProperty, IntProperty, FloatProperty, PointerProperty
 from . import operators, panel
@@ -24,15 +12,26 @@ bpy.types.Scene.wheelfl_object = PointerProperty(type=bpy.types.Object)
 bpy.types.Scene.wheelfr_object = PointerProperty(type=bpy.types.Object)
 bpy.types.Scene.wheelrl_object = PointerProperty(type=bpy.types.Object)
 bpy.types.Scene.wheelrr_object = PointerProperty(type=bpy.types.Object)
+bpy.types.Scene.wheelstaticfl_object = PointerProperty(type=bpy.types.Object)
+bpy.types.Scene.wheelstaticfr_object = PointerProperty(type=bpy.types.Object)
+bpy.types.Scene.wheelstaticrl_object = PointerProperty(type=bpy.types.Object)
+bpy.types.Scene.wheelstaticrr_object = PointerProperty(type=bpy.types.Object)
 
 modules = (operators, panel)
 
 
+def manual_map():
+    url_manual_prefix = "https://github.com/abchouhan/acreplay-parser?tab=readme-ov-file#addon"
+    url_manual_mapping = (("bpy.ops.acreplay_importer.*", ""),)
+    return url_manual_prefix, url_manual_mapping
+
 def register():
     for m in modules:
         m.register()
+    bpy.utils.register_manual_map(manual_map)
 
 def unregister():
+    bpy.utils.unregister_manual_map(manual_map)
     for m in modules:
         m.unregister()
     bpy.context.scene.acrjson_filepath = ""
@@ -44,6 +43,10 @@ def unregister():
     bpy.context.scene.wheelfr_object = None
     bpy.context.scene.wheelrl_object = None
     bpy.context.scene.wheelrr_object = None
+    bpy.context.scene.wheelstaticfl_object = None
+    bpy.context.scene.wheelstaticfr_object = None
+    bpy.context.scene.wheelstaticrl_object = None
+    bpy.context.scene.wheelstaticrr_object = None
 
 
 if __name__ == "__main__":
