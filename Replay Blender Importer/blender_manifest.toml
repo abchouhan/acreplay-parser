@@ -12,7 +12,7 @@ website = "https://github.com/abchouhan/acreplay-parser"
 
 # Tag list defined by Blender and server, see:
 # https://docs.blender.org/manual/en/dev/advanced/extensions/tags.html
-tags = ["Animation", "Import-Export"]
+tags = ["Animation"]
 
 blender_version_min = "4.2.0"
 # Blender version that the extension does not support, earlier versions are supported.
