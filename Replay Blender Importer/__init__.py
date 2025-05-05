@@ -1,3 +1,15 @@
+bl_info = {
+    "name": "AC Replay Importer",
+    "author": "Abhyudaya Chouhan",
+    "version": (0, 2, 0),
+    "blender": (3, 0, 0),
+    "location": "3D View > Toolbox > Animation tab > AC Replay Importer",
+    "description": "Animate your cars using Assetto Corsa replays",
+    #"warning": "",
+    "doc_url": "https://github.com/abchouhan/acreplay-parser",
+    "category": "Animation",
+}
+
 import bpy
 from bpy.props import StringProperty, IntProperty, FloatProperty, PointerProperty
 from . import operators, panel

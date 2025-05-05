@@ -24,6 +24,8 @@ acrp [OPTIONS] [INPUT FILE(S)] with options:
     Parses all cars if unspecified.
 ```
 ### Building
+Note that the parser is unchanged from the [0.2.0 branch](https://github.com/abchouhan/acreplay-parser/tree/0.2.0).
+
 Requirements:
 - A compiler supporting [C++23 extended floating-point types](https://en.cppreference.com/w/cpp/types/floating-point) (GCC recommended)
 - [zlib](https://github.com/madler/zlib)
@@ -44,7 +46,7 @@ The executable will be located in the 'build' subfolder.
 ## Addon
 ### Installation
 - For Blender versions ≥ 4.2.0
-  - Download through [Blender Extensions](#)
+  - Download through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer)
 - For Blender versions ≥ 3.0.0
   - Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
   - In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
@@ -59,10 +61,12 @@ The executable will be located in the 'build' subfolder.
 
 ### Building
 #### For Blender 4.2.0 and beyond
-In the 'Replay Blender Importer' folder, run the following command:
-```
-blender --command extension build
-```
-This creates a zip file 'acreplay_importer-x.x.x.zip' which can be installed in Blender.
+See the [0.2.0 branch](https://github.com/abchouhan/acreplay-parser/tree/0.2.0?tab=readme-ov-file#building-1)
 #### For Blender 3.0.0-4.1.x
-See the [3.0.0 branch](#)
+Simply zip up the folder to get a file structure like:
+```
+Replay.Blender.Importer.zip
+└── Replay Blender Importer
+    ├── __init__.py
+    └── ...
+```
