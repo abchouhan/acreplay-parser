@@ -59,8 +59,7 @@ std::vector<std::string> getDriverNames(std::ifstream &inFile, uint32_t offset, 
 
 // TODO: Not ideal to use addresses to iterate over the frames
 void outputCarFrames(std::ostream &outStream, CarFrame *frames, uint32_t numFrames) {
-	// Need to compute size of CarFrame manually due to use of bit-fields
-	unsigned int stride = (std::ptrdiff_t)&(frames[1])-(std::ptrdiff_t)&(frames[0]);
+	unsigned int stride = sizeof(CarFrame);
 
 	outputToFile<float>(outStream, &(frames[0].position.x), stride, numFrames, "x");
 	outputToFile<float>(outStream, &(frames[0].position.y), stride, numFrames, "y");
@@ -146,22 +145,22 @@ void outputCarFrames(std::ostream &outStream, CarFrame *frames, uint32_t numFram
 
 	outStream << "\"horn\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].horn ? "true" : "false");
+		outStream << (((frames[i].status >> 3) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"cameraDir\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << frames[i].cameraDir;
+		outStream << +(uint8_t)((frames[i].status >> 4) & 0b0011);
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"gearboxBeingDamaged\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].gearboxBeingDamaged ? "true" : "false");
+		outStream << (((frames[i].status >> 9) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"lights\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].lights ? "true" : "false");
+		outStream << (((frames[i].status >> 12) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n";
@@ -171,68 +170,67 @@ void outputCarFrames(std::ostream &outStream, CarFrame *frames, uint32_t numFram
 	outputToFile<uint8_t>(outStream, &(frames[0].boost), stride, numFrames, "boost");
 }
 void outputExtraCarFrames_v6(std::ostream &outStream, CarFrameExtra_v6 *frames, uint32_t numFrames) {
-	// Need to compute size of CarFrame manually due to use of bit-fields
-	unsigned int stride = (std::ptrdiff_t)&(frames[1])-(std::ptrdiff_t)&(frames[0]);
+	unsigned int stride = sizeof(CarFrameExtra_v6);
 
 	outputToFile<uint8_t>(outStream, &(frames[0].wipers), stride, numFrames, "wipers");
 	outStream << "\"turnSignals\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << frames[i].turnSignals;
+		outStream << +(uint8_t)(frames[i].status & 0b0111);
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"lowBeams\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].lowBeams ? "true" : "false");
+		outStream << (((frames[i].status >> 3) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionA\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionA ? "true" : "false");
+		outStream << (((frames[i].status >> 4) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionB\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionB ? "true" : "false");
+		outStream << (((frames[i].status >> 5) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionC\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionC ? "true" : "false");
+		outStream << (((frames[i].status >> 6) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionD\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionD ? "true" : "false");
+		outStream << (((frames[i].status >> 7) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionE\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionE ? "true" : "false");
+		outStream << (((frames[i].status >> 10) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionF\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionF ? "true" : "false");
+		outStream << (((frames[i].status >> 11) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionG\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionG ? "true" : "false");
+		outStream << (((frames[i].status >> 12) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionH\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionH ? "true" : "false");
+		outStream << (((frames[i].status >> 13) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionI\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionI ? "true" : "false");
+		outStream << (((frames[i].status >> 14) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionJ\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionJ ? "true" : "false");
+		outStream << (((frames[i].status >> 15) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n";
@@ -246,62 +244,62 @@ void outputExtraCarFrames_v7(std::ostream &outStream, CarFrameExtra_v7 *frames, 
 	outputToFile<uint8_t>(outStream, &(frames[0].wipers), stride, numFrames, "wipers");
 	outStream << "\"turnSignals\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << frames[i].turnSignals;
+		outStream << +(uint8_t)(frames[i].status & 0b0111);
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"lowBeams\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].lowBeams ? "true" : "false");
+		outStream << (((frames[i].status >> 3) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionA\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionA ? "true" : "false");
+		outStream << (((frames[i].status >> 4) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionB\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionB ? "true" : "false");
+		outStream << (((frames[i].status >> 5) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionC\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionC ? "true" : "false");
+		outStream << (((frames[i].status >> 6) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionD\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionD ? "true" : "false");
+		outStream << (((frames[i].status >> 7) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionE\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionE ? "true" : "false");
+		outStream << (((frames[i].status >> 10) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionF\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionF ? "true" : "false");
+		outStream << (((frames[i].status >> 11) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionG\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionG ? "true" : "false");
+		outStream << (((frames[i].status >> 12) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionH\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionH ? "true" : "false");
+		outStream << (((frames[i].status >> 13) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionI\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionI ? "true" : "false");
+		outStream << (((frames[i].status >> 14) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n\"extraOptionJ\": [";
 	for (int i = 0; i < numFrames; i++) {
-		outStream << (frames[i].extraOptionJ ? "true" : "false");
+		outStream << (((frames[i].status >> 15) & 0x1) ? "true" : "false");
 		if (i < numFrames-1) outStream << ", ";
 	}
 	outStream << "],\n";

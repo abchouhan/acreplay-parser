@@ -43,9 +43,9 @@ The executable will be located in the 'build' subfolder.
 
 ## Addon
 ### Installation
-- For Blender versions >= 4.2.0
+- For Blender versions ≥ 4.2.0
   - Download through [Blender Extensions](#)
-- For Blender versions >= 3.0.0
+- For Blender versions ≥ 3.0.0
   - Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
   - In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
   - Enable the addon
@@ -53,7 +53,7 @@ The executable will be located in the 'build' subfolder.
 ### Usage
 - Open the sidebar by going to View > Sidebar, or by pressing the <kbd>N</kbd> key
 - Go to the Animation tab and locate the 'AC Replay Importer' dropdown
-- Click 'Import .json' and navigate to the `.json` file(s) outputted by the [parser](#parser)
+- Click 'Import .json' and navigate to the `.json` file outputted by the [parser](#parser)
 - Adjust framerate if necessary
 - Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=ZBwSbNptEmM))
 

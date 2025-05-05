@@ -166,16 +166,9 @@ void outputToFile(std::ostream &outStream, void *offset, size_t stride, size_t c
 	} else {
 		outStream << "[";
 	}
-	if (typeid(T) == typeid(uint8_t) || typeid(T) == typeid(int8_t)) {
-		for (size_t i = 0; i < stride*count; i += stride) {
-			outStream << +*(T *)((uint8_t *)offset+i);
-			if (i+stride < stride*count) outStream << ", ";
-		}
-	} else {
-		for (size_t i = 0; i < stride*count; i += stride) {
-			outStream << *(T *)((uint8_t *)offset+i);
-			if (i+stride < stride*count) outStream << ", ";
-		}
+	for (size_t i = 0; i < stride*count; i += stride) {
+		outStream << +*(T *)((uint8_t *)(offset)+i);
+		if (i+stride < stride*count) outStream << ", ";
 	}
 
 	outStream << "]";

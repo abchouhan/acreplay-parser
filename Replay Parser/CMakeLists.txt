@@ -5,6 +5,13 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows") # Link statically if building for Windows
+	set(ZLIB_USE_STATIC_LIBS ON)
+	add_link_options(-static)
+endif()
+
+add_link_options(-Wall -pedantic)
+
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIRS})
 

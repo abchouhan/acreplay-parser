@@ -61,6 +61,9 @@ struct CarHeader {
 struct CarFrame {
 	vector3<float> position; // X, Y (up), Z positions for car body
 	vectorYXZ<std::float16_t> rotation; // X, Y, Z Euler angle rotations for car body in radians
+
+	// 2-byte padding
+
 	// Positions and rotations for elements near the wheel that don't rotate, e.g. brake calipers
 	// 0: front left wheel, 1: front right wheel, 2: rear left wheel, 3: rear right wheel
 	std::array<vector3<float>, 4> wheelStaticPosition;
@@ -83,6 +86,9 @@ struct CarFrame {
 	uint32_t currentLapTime;
 	uint32_t lastLapTime;
 	uint32_t bestLapTime;
+
+	// 2-byte padding
+
 	uint8_t fuel; // Fuel amount from 0 to 255
 	uint8_t fuelPerLap; // Amount of fuel from 0 to 255 predicted to be used, based on average per-lap fuel consumption
 	uint8_t gear; // 0: reverse, 1: neutral, 2: 1st gear, 3: 2nd gear, etc.
@@ -101,6 +107,8 @@ struct CarFrame {
 	uint8_t currentLap; // 0: 1st lap, 1: 2nd lap, etc.
 	uint8_t unknown; // Usually 0
 
+	uint16_t status; // Represents the following (little endian):
+	/*
 	bool : 1;
 	bool : 1;
 	bool unknownBool : 1;
@@ -115,66 +123,71 @@ struct CarFrame {
 	bool : 1;
 	bool : 1;
 	bool : 1;
+	*/
 
-	uint16_t : 16; // Padding
+	uint16_t unknown2; // Possibly padding
 
 	uint8_t dirt; // Amount of dirt on car body from 0 to 255
 	uint8_t engineHealth; // Engine health from 0 to 255
 	uint8_t boost; // Boost (turbo) amount from 0 to 255
+
+	// 1-byte padding
 };
 // A frame of extra car data (CSP EXT_PERCAR)
 struct CarFrameExtra_v6 {
-	uint32_t : 32;
-	uint16_t : 16;
-
+	uint32_t i;
 	std::float16_t h;
+
 	std::float16_t h2;
-	std::float16_t h3; // 00ff
+	std::float16_t h3;
+	std::float16_t h4; // 00ff
 	float f;
 
-	std::float16_t h4;
 	std::float16_t h5;
 	std::float16_t h6;
 	std::float16_t h7;
-	std::float16_t h8; // Usually 0
+	std::float16_t h8;
+	std::float16_t h9; // Usually 0
 
-	std::float16_t h9;
 	std::float16_t h10;
-	std::float16_t h11; // 00ff
+	std::float16_t h11;
+	std::float16_t h12; // 00ff
 	float f2;
 
-	std::float16_t h12;
 	std::float16_t h13;
-
-	uint32_t : 32;
-	uint16_t : 16;
-
 	std::float16_t h14;
+
+	uint32_t i2;
 	std::float16_t h15;
-	std::float16_t h16; // 00ff
-	float f3;
 
+	std::float16_t h16;
 	std::float16_t h17;
-	std::float16_t h18;
-
-	uint32_t : 32;
-	uint16_t : 16;
+	std::float16_t h18; // 00ff
+	float f3;
 
 	std::float16_t h19;
 	std::float16_t h20;
-	std::float16_t h21; // 00ff
-	float f4;
+
+	uint32_t i3;
+	std::float16_t h21;
 
 	std::float16_t h22;
 	std::float16_t h23;
+	std::float16_t h24; // 00ff
+	float f4;
 
-	uint32_t : 32;
-	uint32_t : 32;
+	std::float16_t h25;
+	std::float16_t h26;
 
-	uint8_t : 8;
+	uint32_t i4;
+	uint32_t i5;
+
+	uint8_t b;
 
 	uint8_t wipers; // 0: off, 1: lowest speed, ..., 4: highest speed
 
+	uint16_t status; // Represents the following (little endian):
+	/*
 	unsigned int turnSignals : 3; // 0: off, 1: left, 2: right, 3: only hazards, 4: hazards + extra dashboard hazard light
 	bool lowBeams : 1; // 0: off (high beams), 1: on (low beams)
 	bool extraOptionA : 1;
@@ -189,71 +202,74 @@ struct CarFrameExtra_v6 {
 	bool extraOptionH : 1;
 	bool extraOptionI : 1;
 	bool extraOptionJ : 1;
+	*/
 
 	uint8_t handbrake; // Handbrake amount from 0 to 255
-	uint8_t : 8; // Usually 2
+	uint8_t b2; // Usually 2
 
-	uint8_t : 8;
-	uint8_t : 8;
+	uint8_t b3;
+	uint8_t b4;
 
 	std::float16_t h27; // Usually 0
 
 	uint8_t clutch; // Clutch pedal released amount from 0 (pedal pressed) to 255 (pedal released)
-	uint8_t : 8;
-	uint32_t i; // Usually 0
+	uint8_t b5;
+	uint32_t i6; // Usually 0
 
 	// Sometimes 2A2A2A2A
 	std::float16_t h28;
-	std::float16_t h39;
+	std::float16_t h29;
 };
 struct CarFrameExtra_v7 {
-	uint32_t : 32;
-	uint16_t : 16;
-
+	uint32_t i;
 	std::float16_t h;
+
 	std::float16_t h2;
-	std::float16_t h3; // 00ff
+	std::float16_t h3;
+	std::float16_t h4; // 00ff
 	float f;
 
-	std::float16_t h4;
 	std::float16_t h5;
 	std::float16_t h6;
 	std::float16_t h7;
-	std::float16_t h8; // Usually 0
+	std::float16_t h8;
+	std::float16_t h9; // Usually 0
 
-	std::float16_t h9;
 	std::float16_t h10;
-	std::float16_t h11; // 00ff
+	std::float16_t h11;
+	std::float16_t h12; // 00ff
 	float f2;
 
-	std::float16_t h12;
 	std::float16_t h13;
-
-	uint32_t : 32;
-	uint16_t : 16;
-
 	std::float16_t h14;
+
+	uint32_t i2;
 	std::float16_t h15;
-	std::float16_t h16; // 00ff
-	float f3;
 
+	std::float16_t h16;
 	std::float16_t h17;
-	std::float16_t h18;
-
-	uint32_t : 32;
-	uint16_t : 16;
+	std::float16_t h18; // 00ff
+	float f3;
 
 	std::float16_t h19;
 	std::float16_t h20;
-	std::float16_t h21; // 00ff
-	float f4;
+
+	uint32_t i3;
+	std::float16_t h21;
 
 	std::float16_t h22;
 	std::float16_t h23;
+	std::float16_t h24; // 00ff
+	float f4;
 
-	uint32_t : 32;
-	uint32_t : 32;
+	std::float16_t h25;
+	std::float16_t h26;
 
+	uint32_t i4;
+	uint32_t i5;
+
+	uint16_t status; // Represents the following (little endian):
+	/*
 	unsigned int turnSignals : 3; // 0: off, 1: left, 2: right, 3: only hazards, 4: hazards + extra dashboard hazard light
 	bool lowBeams : 1; // 0: off (high beams), 1: on (low beams)
 	bool extraOptionA : 1;
@@ -268,22 +284,23 @@ struct CarFrameExtra_v7 {
 	bool extraOptionH : 1;
 	bool extraOptionI : 1;
 	bool extraOptionJ : 1;
+	*/
 
-	uint8_t : 8;
+	uint8_t b;
 
 	uint8_t wipers; // 0: off, 1: lowest speed, ..., 4: highest speed
 
 	uint8_t handbrake; // Handbrake amount from 0 to 255
-	uint8_t : 8; // Usually 2
+	uint8_t b2; // Usually 2
 
 	uint8_t clutch; // Clutch pedal released amount from 0 (pedal pressed) to 255 (pedal released)
 
-	uint8_t : 8;
-	uint8_t : 8;
+	uint8_t b3;
+	uint8_t b4;
 
-	uint8_t : 8; // Usually 1
-	uint8_t : 8; // Likely padding
-	uint32_t i; // Usually 0
+	uint8_t b5; // Usually 1
+	uint8_t b6; // Likely padding
+	uint32_t i6; // Usually 0
 
 	// Sometimes 2A2A2A2A
 	std::float16_t h28;
