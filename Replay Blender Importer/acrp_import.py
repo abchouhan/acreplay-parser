@@ -178,6 +178,8 @@ def keyframe_custom_property(obj, frames, num_frames, prop, data):
         co[0::2] = frames
         co[1::2] = prop.func(data)
         fc.keyframe_points.foreach_set("co", co)
+        fc.keyframe_points.foreach_set("interpolation", interpolation_values)
+		fc.update()
     elif len(data[0]) == num_frames:
         for i in range(0, len(data)):
             if use_slots:
@@ -192,8 +194,7 @@ def keyframe_custom_property(obj, frames, num_frames, prop, data):
             co[1::2] = prop.func(data[i])
             fc.keyframe_points.foreach_set("co", co)
 			fc.keyframe_points.foreach_set("interpolation", interpolation_values)
-
-    fc.update()
+			fc.update()
 
 def animate(self, scn, data):
     filename = os.path.split(scn.acrjson_filepath)[1]
