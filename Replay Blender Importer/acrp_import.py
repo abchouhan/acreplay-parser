@@ -191,8 +191,8 @@ def keyframe_custom_property(obj, frames, num_frames, prop, data):
             co[0::2] = frames
             co[1::2] = prop.func(data[i])
             fc.keyframe_points.foreach_set("co", co)
+			fc.keyframe_points.foreach_set("interpolation", interpolation_values)
 
-    fc.keyframe_points.foreach_set("interpolation", interpolation_values)
     fc.update()
 
 def animate(self, scn, data):
