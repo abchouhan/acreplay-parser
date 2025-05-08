@@ -46,7 +46,7 @@ The executable will be located in the 'build' subfolder.
 ## Addon
 ### Installation
 - For Blender versions ≥ 4.2.0
-  - Download through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer)
+  - Download through [Blender Extensions](https://extensions.blender.org/approval-queue/acreplay-importer/)
 - For Blender versions ≥ 3.0.0
   - Download `Replay.Blender.Importer.zip` from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
   - In Blender go to Edit > Preferences and click 'Install', navigate to the downloaded file
