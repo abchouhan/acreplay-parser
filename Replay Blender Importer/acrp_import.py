@@ -93,23 +93,24 @@ extra_properties = [
 ]
 
 
-def keyframe_loc_rot(obj, action_name, frames, num_frames, loc, rot):
+def keyframe_loc_rot(obj, action, frames, num_frames, loc, rot):
     anim_data = obj.animation_data_create()
-    action = bpy.data.actions.new(action_name)
     anim_data.action = action
     if use_slots:
-        slot = action.slots.new(id_type="OBJECT", name=obj.name)
-        layer = action.layers.new("Layer")
-        strip = layer.strips.new(type="KEYFRAME")
-        transforms_group = action.groups.new("Object Transforms")
-        custom_props_group = action.groups.new("Custom Properties")
+        slot = action.slots.get("OB"+obj.name)
+        if slot is None:
+            slot = action.slots.new(id_type="OBJECT", name=obj.name)
+        channelbag = action.layers[0].strips[0].channelbag(slot, ensure=True)
+        transforms_group = channelbag.groups.get("Object Transforms")
+        if transforms_group is None:
+            transforms_group = channelbag.groups.new("Object Transforms")
         anim_data.action_slot = slot
     interpolation_values = np.full(shape=num_frames, fill_value=bpy.types.Keyframe.bl_rna.properties["interpolation"].enum_items["LINEAR"].value)
 
     # Keyframe translations
     for i in range(0, 3):
         if use_slots:
-            fc_loc = strip.channelbag(slot, ensure=True).fcurves.new(data_path="location", index=i)
+            fc_loc = channelbag.fcurves.new(data_path="location", index=i)
             fc_loc.group = transforms_group
         else:
             fc_loc = action.fcurves.new(data_path="location", index=i, action_group="Object Transforms")
@@ -144,7 +145,7 @@ def keyframe_loc_rot(obj, action_name, frames, num_frames, loc, rot):
     # Keyframe rotations
     for i in range(0, 4):
         if use_slots:
-            fc_rot = action.layers[0].strips[0].channelbag(slot, ensure=True).fcurves.new(data_path="rotation_quaternion", index=i)
+            fc_rot = channelbag.fcurves.new(data_path="rotation_quaternion", index=i)
             fc_rot.group = transforms_group
         else:
             fc_rot = action.fcurves.new(data_path="rotation_quaternion", index=i, action_group="Object Transforms")
@@ -156,20 +157,23 @@ def keyframe_loc_rot(obj, action_name, frames, num_frames, loc, rot):
         fc_rot.keyframe_points.foreach_set("interpolation", interpolation_values)
         fc_rot.update()
 
-def keyframe_custom_property(obj, frames, num_frames, prop, data):
-    action = obj.animation_data.action
+def keyframe_custom_property(obj, action, frames, num_frames, prop, data):
     interpolation_values = np.full(shape=num_frames, fill_value=bpy.types.Keyframe.bl_rna.properties["interpolation"].enum_items[prop.interpolation].value)
     if prop.name not in obj:
         obj[prop.name] = prop.default
     ui_prop = obj.id_properties_ui(prop.name)
     prop.assign(ui_prop)
-    if use_slots:
-        custom_props_group = action.groups["Custom Properties"]
 
     if len(data) == num_frames:
         if use_slots:
-            slot = action.slots["OB"+obj.name]
-            fc = action.layers[0].strips[0].channelbag(slot, ensure=True).fcurves.new(data_path='["' + prop.name + '"]', index=0)
+            slot = action.slots.get("OB"+obj.name)
+            if slot is None:
+                slot = action.slots.new(id_type="OBJECT", name=obj.name)
+            channelbag = action.layers[0].strips[0].channelbag(slot, ensure=True)
+            custom_props_group = channelbag.groups.get("Custom Properties")
+            if custom_props_group is None:
+                custom_props_group = channelbag.groups.new("Custom Properties")
+            fc = channelbag.fcurves.new(data_path='["' + prop.name + '"]', index=0)
             fc.group = custom_props_group
         else:
             fc = action.fcurves.new(data_path='["' + prop.name + '"]', index=0, action_group="Custom Properties")
@@ -183,8 +187,14 @@ def keyframe_custom_property(obj, frames, num_frames, prop, data):
     elif len(data[0]) == num_frames:
         for i in range(0, len(data)):
             if use_slots:
-                slot = action.slots["OB"+obj.name]
-                fc = action.layers[0].strips[0].channelbag(slot, ensure=True).fcurves.new(data_path='["' + prop.name + '"]', index=i)
+                slot = action.slots.get("OB"+obj.name)
+                if slot is None:
+                    slot = action.slots.new(id_type="OBJECT", name=obj.name)
+                channelbag = action.layers[0].strips[0].channelbag(slot, ensure=True)
+                custom_props_group = channelbag.groups.get("Custom Properties")
+                if custom_props_group is None:
+                    custom_props_group = channelbag.groups.new("Custom Properties")
+                fc = channelbag.fcurves.new(data_path='["' + prop.name + '"]', index=i)
                 fc.group = custom_props_group
             else:
                 fc = action.fcurves.new(data_path='["' + prop.name + '"]', index=i, action_group="Custom Properties")
@@ -196,8 +206,23 @@ def keyframe_custom_property(obj, frames, num_frames, prop, data):
             fc.keyframe_points.foreach_set("interpolation", interpolation_values)
             fc.update()
 
-def animate(self, scn, data):
-    filename = os.path.split(scn.acrjson_filepath)[1]
+def animate(self, acrp_props, data):
+    # Get first 32 chars of filename as action names are limited to 63 chars
+    filename = os.path.split(acrp_props.acrjson_filepath)[1][:32]
+    name_index = 0
+    if use_slots:
+        new_filename = filename
+        while True: # Create a new action with a unique name given the filename
+            action = bpy.data.actions.get(new_filename)
+            if action is None:
+                action = bpy.data.actions.new(new_filename)
+                layer = action.layers.new("Layer")
+                strip = layer.strips.new(type="KEYFRAME")
+                break
+            else:
+                name_index += 1
+                new_filename = filename+"."+str(name_index).zfill(3)
+        filename = new_filename
 
     if "x" in data and "y" in data and "z" in data:
         # Swap Y and Z axes for Blender, and negate Z axis
@@ -245,61 +270,70 @@ def animate(self, scn, data):
                                     np.array(data.get("wheelStaticRotZ")),
                                     np.negative(data.get("wheelStaticRotY"))])
 
-    factor = scn.target_framerate/(1000.0/scn.recording_interval)
-    frames = [factor*(i+1) for i in range(0, scn.num_frames)]
+    factor = acrp_props.target_framerate/(1000.0/acrp_props.recording_interval)
+    frames = [factor*(i+1) for i in range(0, acrp_props.num_frames)]
 
-    if scn.chassis_object:
-        keyframe_loc_rot(scn.chassis_object, filename if use_slots else "Chassis Action", frames, scn.num_frames, loc, rot)
+    if acrp_props.chassis_object:
+        action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("Chassis Action")
+        keyframe_loc_rot(acrp_props.chassis_object, action, frames, acrp_props.num_frames, loc, rot)
         for prop in legacy_properties:
             if prop.name in data:
-                keyframe_custom_property(scn.chassis_object, frames, scn.num_frames, prop, np.array(data.get(prop.name)))
+                keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, np.array(data.get(prop.name)))
         for prop in chassis_properties:
             if prop.name in data:
-                keyframe_custom_property(scn.chassis_object, frames, scn.num_frames, prop, np.array(data.get(prop.name)))
+                keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, np.array(data.get(prop.name)))
             elif prop.name == "velocity" and "velocityX" in data and "velocityY" in data and "velocityZ" in data:
                 velocity = np.array([np.array(data.get("velocityX")),
                                      np.negative(data.get("velocityZ")),
                                      np.array(data.get("velocityY"))])
-                keyframe_custom_property(scn.chassis_object, frames, scn.num_frames, prop, velocity)
+                keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, velocity)
         for prop in extra_properties:
             if prop.name in data:
-                keyframe_custom_property(scn.chassis_object, frames, scn.num_frames, prop, np.array(data.get(prop.name)))
+                keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, np.array(data.get(prop.name)))
             elif prop.name == "highBeams" and "lowBeams" in data:
-                keyframe_custom_property(scn.chassis_object, frames, scn.num_frames, prop, np.array(data.get("lowBeams")))
+                keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, np.array(data.get("lowBeams")))
 
     wheel_props = []
     for prop in wheel_properties:
         if prop.name in data:
             wheel_props.append((prop, np.array(data.get(prop.name))))
 
-    if scn.wheelfl_object:
-        keyframe_loc_rot(scn.wheelfl_object, filename if use_slots else "FL Wheel Action", frames, scn.num_frames, wheel_loc[:,0], wheel_rot[:,0])
+    if acrp_props.wheelfl_object:
+        action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("FL Wheel Action")
+        keyframe_loc_rot(acrp_props.wheelfl_object, action, frames, acrp_props.num_frames, wheel_loc[:,0], wheel_rot[:,0])
         for prop in wheel_props:
-            keyframe_custom_property(scn.wheelfl_object, frames, scn.num_frames, prop[0], prop[1][0])
+            keyframe_custom_property(acrp_props.wheelfl_object, action, frames, acrp_props.num_frames, prop[0], prop[1][0])
 
-    if scn.wheelfr_object:
-        keyframe_loc_rot(scn.wheelfr_object, filename if use_slots else "FR Wheel Action", frames, scn.num_frames, wheel_loc[:,1], wheel_rot[:,1])
+    if acrp_props.wheelfr_object:
+        action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("FR Wheel Action")
+        keyframe_loc_rot(acrp_props.wheelfr_object, action, frames, acrp_props.num_frames, wheel_loc[:,1], wheel_rot[:,1])
         for prop in wheel_props:
-            keyframe_custom_property(scn.wheelfr_object, frames, scn.num_frames, prop[0], prop[1][1])
+            keyframe_custom_property(acrp_props.wheelfr_object, action, frames, acrp_props.num_frames, prop[0], prop[1][1])
 
-    if scn.wheelrl_object:
-        keyframe_loc_rot(scn.wheelrl_object, filename if use_slots else "RL Wheel Action", frames, scn.num_frames, wheel_loc[:,2], wheel_rot[:,2])
+    if acrp_props.wheelrl_object:
+        action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("RL Wheel Action")
+        keyframe_loc_rot(acrp_props.wheelrl_object, action, frames, acrp_props.num_frames, wheel_loc[:,2], wheel_rot[:,2])
         for prop in wheel_props:
-            keyframe_custom_property(scn.wheelrl_object, frames, scn.num_frames, prop[0], prop[1][2])
+            keyframe_custom_property(acrp_props.wheelrl_object, action, frames, acrp_props.num_frames, prop[0], prop[1][2])
 
-    if scn.wheelrr_object:
-        keyframe_loc_rot(scn.wheelrr_object, filename if use_slots else "RR Wheel Action", frames, scn.num_frames, wheel_loc[:,3], wheel_rot[:,3])
+    if acrp_props.wheelrr_object:
+        action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("RR Wheel Action")
+        keyframe_loc_rot(acrp_props.wheelrr_object, action, frames, acrp_props.num_frames, wheel_loc[:,3], wheel_rot[:,3])
         for prop in wheel_props:
-            keyframe_custom_property(scn.wheelrr_object, frames, scn.num_frames, prop[0], prop[1][3])
+            keyframe_custom_property(acrp_props.wheelrr_object, action, frames, acrp_props.num_frames, prop[0], prop[1][3])
 
     if containsStaticData:
-        if scn.wheelstaticfl_object:
-            keyframe_loc_rot(scn.wheelstaticfl_object, filename if use_slots else "FL Wheel Static Action", frames, scn.num_frames, wheel_static_loc[:,0], wheel_static_rot[:,0])
-        if scn.wheelstaticfr_object:
-            keyframe_loc_rot(scn.wheelstaticfr_object, filename if use_slots else "FR Wheel Static Action", frames, scn.num_frames, wheel_static_loc[:,1], wheel_static_rot[:,1])
-        if scn.wheelstaticrl_object:
-            keyframe_loc_rot(scn.wheelstaticrl_object, filename if use_slots else "RL Wheel Static Action", frames, scn.num_frames, wheel_static_loc[:,2], wheel_static_rot[:,2])
-        if scn.wheelstaticrr_object:
-            keyframe_loc_rot(scn.wheelstaticrr_object, filename if use_slots else "RR Wheel Static Action", frames, scn.num_frames, wheel_static_loc[:,3], wheel_static_rot[:,3])
+        if acrp_props.wheelstaticfl_object:
+            action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("FL Wheel Static Action")
+            keyframe_loc_rot(acrp_props.wheelstaticfl_object, action, frames, acrp_props.num_frames, wheel_static_loc[:,0], wheel_static_rot[:,0])
+        if acrp_props.wheelstaticfr_object:
+            action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("FR Wheel Static Action")
+            keyframe_loc_rot(acrp_props.wheelstaticfr_object, action, frames, acrp_props.num_frames, wheel_static_loc[:,1], wheel_static_rot[:,1])
+        if acrp_props.wheelstaticrl_object:
+            action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("RL Wheel Static Action")
+            keyframe_loc_rot(acrp_props.wheelstaticrl_object, action, frames, acrp_props.num_frames, wheel_static_loc[:,2], wheel_static_rot[:,2])
+        if acrp_props.wheelstaticrr_object:
+            action = bpy.data.actions.get(filename) if use_slots else bpy.data.actions.new("RR Wheel Static Action")
+            keyframe_loc_rot(acrp_props.wheelstaticrr_object, action, frames, acrp_props.num_frames, wheel_static_loc[:,3], wheel_static_rot[:,3])
 
     return {'FINISHED'}
