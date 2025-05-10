@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "acreplay_importer"
-version = "0.2.0"
+version = "0.2.1"
 name = "AC Replay Importer"
 tagline = "Animate your cars using Assetto Corsa replays"
 maintainer = "Abhyudaya Chouhan"
