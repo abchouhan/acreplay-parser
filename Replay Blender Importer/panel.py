@@ -4,7 +4,7 @@ from bpy.types import Panel
 
 
 class ACRI_PT_panel(Panel):
-    bl_label = "AC Replay Importer 0.2.0"
+    bl_label = "AC Replay Importer 0.2.1"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = "Animation"
@@ -13,11 +13,12 @@ class ACRI_PT_panel(Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
-        acrjson_filepath = scn.acrjson_filepath
-        recording_interval = scn.recording_interval
+        props = scn.acreplay_importer_props
+        acrjson_filepath = props.acrjson_filepath
+        recording_interval = props.recording_interval
         
         row = layout.row()
-        row.operator("acreplay_importer.import_acrjson", text="Import .json", icon="FILE")
+        row.operator("scene.acreplay_import_json", text="Import .json", icon="FILE")
 
         if acrjson_filepath:
             row = layout.row()
@@ -26,22 +27,22 @@ class ACRI_PT_panel(Panel):
                 layout.label(text=("Frame Rate: " + str((1000.0 / recording_interval))))
 
         row = layout.row()
-        layout.prop(scn, "target_framerate")
+        layout.prop(props, "target_framerate")
         row = layout.row()
-        layout.prop_search(scn, "chassis_object", scn, "objects", text="Chassis", icon="AUTO")
-        layout.prop_search(scn, "wheelfl_object", scn, "objects", text="FL Wheel", icon="DISC")
-        layout.prop_search(scn, "wheelfr_object", scn, "objects", text="FR Wheel", icon="DISC")
-        layout.prop_search(scn, "wheelrl_object", scn, "objects", text="RL Wheel", icon="DISC")
-        layout.prop_search(scn, "wheelrr_object", scn, "objects", text="RR Wheel", icon="DISC")
+        layout.prop_search(props, "chassis_object", scn, "objects", text="Chassis", icon="AUTO")
+        layout.prop_search(props, "wheelfl_object", scn, "objects", text="FL Wheel", icon="DISC")
+        layout.prop_search(props, "wheelfr_object", scn, "objects", text="FR Wheel", icon="DISC")
+        layout.prop_search(props, "wheelrl_object", scn, "objects", text="RL Wheel", icon="DISC")
+        layout.prop_search(props, "wheelrr_object", scn, "objects", text="RR Wheel", icon="DISC")
         layout.label(text="For static elements near the wheel that don't rotate (e.g. brake calipers):")
-        layout.prop_search(scn, "wheelstaticfl_object", scn, "objects", text="FL Static")
-        layout.prop_search(scn, "wheelstaticfr_object", scn, "objects", text="FR Static")
-        layout.prop_search(scn, "wheelstaticrl_object", scn, "objects", text="RL Static")
-        layout.prop_search(scn, "wheelstaticrr_object", scn, "objects", text="RR Static")
+        layout.prop_search(props, "wheelstaticfl_object", scn, "objects", text="FL Static")
+        layout.prop_search(props, "wheelstaticfr_object", scn, "objects", text="FR Static")
+        layout.prop_search(props, "wheelstaticrl_object", scn, "objects", text="RL Static")
+        layout.prop_search(props, "wheelstaticrr_object", scn, "objects", text="RR Static")
 
         if acrjson_filepath:
             row = layout.row()
-            row.operator("acreplay_importer.animate", text="Animate", icon="NONE")
+            row.operator("scene.acreplay_animate", text="Animate", icon="NONE")
 
 
 classes = (ACRI_PT_panel,)

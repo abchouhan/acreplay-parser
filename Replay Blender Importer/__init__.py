@@ -3,29 +3,33 @@ from bpy.props import StringProperty, IntProperty, FloatProperty, PointerPropert
 from . import operators, panel
 
 
-bpy.types.Scene.acrjson_filepath = StringProperty(default="")
-bpy.types.Scene.num_frames = IntProperty(default=0)
-bpy.types.Scene.recording_interval = FloatProperty(default=0.0) # in Hz
-bpy.types.Scene.target_framerate = FloatProperty(name="Target Frame Rate", default=30.0, min=1.0, precision=2)
-bpy.types.Scene.chassis_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelfl_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelfr_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelrl_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelrr_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelstaticfl_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelstaticfr_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelstaticrl_object = PointerProperty(type=bpy.types.Object)
-bpy.types.Scene.wheelstaticrr_object = PointerProperty(type=bpy.types.Object)
+class ACReplayImporterProperties(bpy.types.PropertyGroup):
+	acrjson_filepath:       StringProperty(default="")
+	num_frames:             IntProperty(default=0)
+	recording_interval:     FloatProperty(default=0.0) # in Hz
+	target_framerate:       FloatProperty(name="Target Frame Rate", default=30.0, min=1.0, precision=2)
+	chassis_object:         PointerProperty(name="Chassis", type=bpy.types.Object)
+	wheelfl_object:         PointerProperty(name="FL Wheel", type=bpy.types.Object)
+	wheelfr_object:         PointerProperty(name="FR Wheel", type=bpy.types.Object)
+	wheelrl_object:         PointerProperty(name="RL Wheel", type=bpy.types.Object)
+	wheelrr_object:         PointerProperty(name="RR Wheel", type=bpy.types.Object)
+	wheelstaticfl_object:   PointerProperty(name="FL Static", type=bpy.types.Object)
+	wheelstaticfr_object:   PointerProperty(name="FR Static", type=bpy.types.Object)
+	wheelstaticrl_object:   PointerProperty(name="RL Static", type=bpy.types.Object)
+	wheelstaticrr_object:   PointerProperty(name="RR Static", type=bpy.types.Object)
+
+def manual_map():
+    url_manual_prefix = "https://github.com/abchouhan/acreplay-parser?tab=readme-ov-file#addon"
+    url_manual_mapping = (("bpy.ops.scene.acreplay_import_json", ""),
+						  ("bpy.ops.scene.acreplay_animate", ""),)
+    return url_manual_prefix, url_manual_mapping
 
 modules = (operators, panel)
 
 
-def manual_map():
-    url_manual_prefix = "https://github.com/abchouhan/acreplay-parser?tab=readme-ov-file#addon"
-    url_manual_mapping = (("bpy.ops.acreplay_importer.*", ""),)
-    return url_manual_prefix, url_manual_mapping
-
 def register():
+    bpy.utils.register_class(ACReplayImporterProperties)
+    bpy.types.Scene.acreplay_importer_props = bpy.props.PointerProperty(type=ACReplayImporterProperties)
     for m in modules:
         m.register()
     bpy.utils.register_manual_map(manual_map)
@@ -34,19 +38,8 @@ def unregister():
     bpy.utils.unregister_manual_map(manual_map)
     for m in modules:
         m.unregister()
-    bpy.context.scene.acrjson_filepath = ""
-    bpy.context.scene.num_frames = 0
-    bpy.context.scene.recording_interval = 0.0
-    bpy.context.scene.target_framerate = 30.0
-    bpy.context.scene.chassis_object = None
-    bpy.context.scene.wheelfl_object = None
-    bpy.context.scene.wheelfr_object = None
-    bpy.context.scene.wheelrl_object = None
-    bpy.context.scene.wheelrr_object = None
-    bpy.context.scene.wheelstaticfl_object = None
-    bpy.context.scene.wheelstaticfr_object = None
-    bpy.context.scene.wheelstaticrl_object = None
-    bpy.context.scene.wheelstaticrr_object = None
+    del bpy.types.Scene.acreplay_importer_props
+    bpy.utils.unregister_class(ACReplayImporterProperties)
 
 
 if __name__ == "__main__":
