@@ -29,7 +29,7 @@ modules = (operators, panel)
 
 def register():
     bpy.utils.register_class(ACReplayImporterProperties)
-    bpy.context.scene.acreplay_importer_props = bpy.props.PointerProperty(type=ACReplayImporterProperties)
+    bpy.types.Scene.acreplay_importer_props = bpy.props.PointerProperty(type=ACReplayImporterProperties)
     for m in modules:
         m.register()
     bpy.utils.register_manual_map(manual_map)
@@ -38,7 +38,7 @@ def unregister():
     bpy.utils.unregister_manual_map(manual_map)
     for m in modules:
         m.unregister()
-    del bpy.context.scene.acreplay_importer_props
+    del bpy.types.Scene.acreplay_importer_props
     bpy.utils.unregister_class(ACReplayImporterProperties)
 
 
