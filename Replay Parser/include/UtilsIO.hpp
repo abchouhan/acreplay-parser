@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <cmath>
 
 /**
  * Utility functions for common IO operations.
@@ -167,7 +168,9 @@ void outputToFile(std::ostream &outStream, void *offset, size_t stride, size_t c
 		outStream << "[";
 	}
 	for (size_t i = 0; i < stride*count; i += stride) {
-		outStream << +*(T *)((uint8_t *)(offset)+i);
+		T value = *(T *)((uint8_t *)(offset)+i);
+		if (std::isnan(value) || std::isinf(value)) outStream << "0";
+		else outStream << +value;
 		if (i+stride < stride*count) outStream << ", ";
 	}
 

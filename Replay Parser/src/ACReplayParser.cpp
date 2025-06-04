@@ -167,7 +167,7 @@ void outputCarFrames(std::ostream &outStream, CarFrame *frames, uint32_t numFram
 
 	outputToFile<uint8_t>(outStream, &(frames[0].dirt), stride, numFrames, "dirt");
 	outputToFile<uint8_t>(outStream, &(frames[0].engineHealth), stride, numFrames, "engineHealth");
-	outputToFile<uint8_t>(outStream, &(frames[0].boost), stride, numFrames, "boost");
+	outputToFile<uint8_t>(outStream, &(frames[0].boost), stride, numFrames, "boost", false);
 }
 void outputExtraCarFrames_v6(std::ostream &outStream, CarFrameExtra_v6 *frames, uint32_t numFrames) {
 	unsigned int stride = sizeof(CarFrameExtra_v6);
@@ -486,6 +486,7 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 					case 6: {
 						CarFrameExtra_v6 *extraFrames = new CarFrameExtra_v6[carHeader.numFrames];
 						readValueArray(inStreamPerCar, carHeader.numFrames, extraFrames);
+						outFile << ", ";
 						outputExtraCarFrames_v6(outFile, extraFrames, carHeader.numFrames);
 						delete[] extraFrames;
 						break;
@@ -493,6 +494,7 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 					case 7: {
 						CarFrameExtra_v7 *extraFrames = new CarFrameExtra_v7[carHeader.numFrames];
 						readValueArray(inStreamPerCar, carHeader.numFrames, extraFrames);
+						outFile << ", ";
 						outputExtraCarFrames_v7(outFile, extraFrames, carHeader.numFrames);
 						delete[] extraFrames;
 						break;
