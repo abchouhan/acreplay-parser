@@ -25,7 +25,7 @@ acrp [OPTIONS] [INPUT FILE(S)] with options:
 ```
 ### Building
 Requirements:
-- A compiler supporting [C++23 extended floating-point types](https://en.cppreference.com/w/cpp/types/floating-point) (GCC recommended)
+- A compiler supporting C++23 [extended floating-point types](https://en.cppreference.com/w/cpp/types/floating-point), and [spanstreams](https://en.cppreference.com/w/cpp/header/spanstream.html) (GCC recommended)
 - [zlib](https://github.com/madler/zlib)
 - CMake
 
