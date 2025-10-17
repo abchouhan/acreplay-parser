@@ -1,15 +1,11 @@
 #pragma once
 
-#include "UtilsIO.hpp"
-#include "UtilsData.hpp"
-
-#include <iostream>
-#include <spanstream>
-#include <vector>
 #include <cstdint>
 #include <stdfloat>
+#include <vector>
 #include <optional>
-#include <zlib.h>
+
+#include "UtilsData.hpp"
 
 /**
  * Parses and outputs .acreplay files.

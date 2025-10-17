@@ -1,3 +1,9 @@
+#include <iostream>
+#include <spanstream>
+#include <sstream>
+#include <zlib.h>
+
+#include "../include/UtilsIO.hpp"
 #include "../include/ACReplayParser.hpp"
 
 std::optional<uint32_t> getCSPDataOffset(std::ifstream &inFile) {

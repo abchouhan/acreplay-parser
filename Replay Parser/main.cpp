@@ -1,5 +1,7 @@
-#include "include/ACReplayParser.hpp"
+#include <iostream>
 #include <cstring>
+
+#include "include/ACReplayParser.hpp"
 
 int noInputError() {
     std::cerr << "An input file is required." << std::endl;

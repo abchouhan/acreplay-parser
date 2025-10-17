@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "../include/UtilsIO.hpp"
 
 char *readChars(std::istream &inStream, uint32_t size) {

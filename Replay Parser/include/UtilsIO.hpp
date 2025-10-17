@@ -2,11 +2,10 @@
 
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <string>
 #include <vector>
 #include <cstdint>
 #include <cmath>
+#include <iomanip>
 
 /**
  * Utility functions for common IO operations.
@@ -131,6 +130,8 @@ void outputVectorToFile(std::ofstream &outFile, T val) {
 
 	if (typeid(T) == typeid(uint8_t) || typeid(T) == typeid(int8_t)) {
 		outFile << +val;
+	} else if (std::is_floating_point_v<T>) {
+		outFile << std::setprecision(std::numeric_limits<T>::max_digits10) << val;
 	} else {
 		outFile << val;
 	}
@@ -170,6 +171,7 @@ void outputToFile(std::ostream &outStream, void *offset, size_t stride, size_t c
 	for (size_t i = 0; i < stride*count; i += stride) {
 		T value = *(T *)((uint8_t *)(offset)+i);
 		if (std::isnan(value) || std::isinf(value)) outStream << "0";
+		else if (std::is_floating_point_v<T>) outStream << std::setprecision(std::numeric_limits<T>::max_digits10) << value;
 		else outStream << +value;
 		if (i+stride < stride*count) outStream << ", ";
 	}
