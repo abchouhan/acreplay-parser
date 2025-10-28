@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0) {
-            std::cout << "Assetto Corsa Replay Parser 0.2.0" << std::endl;
+            std::cout << "Assetto Corsa Replay Parser 0.2.3" << std::endl;
             std::cout << "Usage: acrp [OPTIONS] [INPUT FILE(S)]\n\nwith options:" << std::endl;
             std::cout << "-o, --output PATH\n\tOutput path with optional file name." << std::endl;
             std::cout << "\tDefault is \"<input-filename>.json\" in the directory of the executable." << std::endl;

@@ -323,6 +323,11 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 		std::cout << inPath << std::endl;
 	}
 
+	inFile.seekg(0, inFile.end);
+	size_t fileSize = inFile.tellg();
+	inFile.seekg(0, inFile.beg);
+	std::cout << fileSize << " bytes" << std::endl;
+
 	uint32_t version = readValue<uint32_t>(inFile);
 	std::cout << "Version: " << version << std::endl;
 	if (version != 16) {
@@ -375,6 +380,11 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 	inFile.seekg((2 + 2 + 12 * header.numTrackObjects) * header.numFrames, std::ios_base::cur);
 
 	for (int c = 0; c < header.numCars; c++) {
+		if (inFile.tellg() > fileSize) {
+			std::cerr << "Attempted to read beyond file size!" << std::endl;
+			break;
+		}
+
 		CarHeader carHeader = {
 			.carID =		readValue<std::string>(inFile),
 			.driverName =	readValue<std::string>(inFile),
@@ -388,8 +398,11 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 		// If targetIndex is set but it is not the current iteration of the loop,
 		// then setup inFile stream position to next driver
 		if (!targetDriverName.empty() && targetDriverName != carHeader.driverName) {
-			inFile.seekg(20+(255+(21+carHeader.numWings*4))*(carHeader.numFrames-1)
-				+ (255+(5+carHeader.numWings*4)), std::ios_base::cur);
+			inFile.seekg(20+(sizeof(CarFrame)+(20+carHeader.numWings*4))*(carHeader.numFrames-1) + sizeof(CarFrame)+carHeader.numWings*4, std::ios_base::cur);
+			uint32_t count = readValue<uint32_t>(inFile);
+			if (count > 0) {
+				inFile.seekg(count*8, std::ios_base::cur);
+			}
 			continue;
 		}
 
@@ -398,6 +411,8 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 		std::cout << "Nation Code: " << carHeader.nationCode << std::endl;
 		std::cout << "Driver Team: " << carHeader.driverTeam << std::endl;
 		std::cout << "Car Skin ID: " << carHeader.carSkinID << std::endl;
+		std::cout << "Number of Frames: " << carHeader.numFrames << std::endl;
+		std::cout << "Number of Wings: " << carHeader.numWings << std::endl;
 
 		inFile.seekg(20, std::ios_base::cur);
 
@@ -408,7 +423,12 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 			if (i < carHeader.numFrames-1) {
 				inFile.seekg(20+carHeader.numWings*4, std::ios_base::cur);
 			} else {
-				inFile.seekg(4+carHeader.numWings*4, std::ios_base::cur);
+				inFile.seekg(carHeader.numWings*4, std::ios_base::cur);
+				uint32_t count = readValue<uint32_t>(inFile);
+				if (count > 0) {
+					std::cout << "Extra trailing bytes: " << count << std::endl;
+					inFile.seekg(count*8, std::ios_base::cur);
+				}
 			}
 		}
 
@@ -454,7 +474,9 @@ void readAndOutput(std::string const inPath, std::string_view const outPath, std
 							bytesPerFrame = EXT_PERCAR_BYTES_PER_FRAME[version-1];
 						}
 						if (c == carIndex) {
-							if (bytesPerFrame == 0) {
+							if (bytesPerFrame > 0) {
+								std::cout << "EXT_PERCAR version: " << version << std::endl;
+							} else {
 								std::cerr << "Unsupported EXT_PERCAR version: " << version << std::endl;
 							}
 							break;
