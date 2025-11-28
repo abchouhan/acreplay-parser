@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "acreplay_importer"
-version = "0.2.1"
+version = "0.3.0"
 name = "AC Replay Importer"
 tagline = "Animate your cars using Assetto Corsa replays"
 maintainer = "Abhyudaya Chouhan"
@@ -25,4 +25,4 @@ license = [
 ]
 
 [permissions]
-files = "Import JSON from disk"
+files = "Import CSV from disk"
