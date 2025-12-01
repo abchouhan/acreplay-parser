@@ -34,7 +34,7 @@ class ACRI_OT_import_acrcsv(Operator, ImportHelper):
                 hz_str = f.readline().split()[1:]
                 if frames_str[0] != "numFrames" or hz_str[0] != "recordingInterval":
                     self.set_path(context, "")
-                    self.report({'ERROR'}, "Invalid .csv file!")
+                    self.report({'ERROR'}, "Missing headers! Make sure the .csv file was created with AC Replay Parser 0.3.0")
                     return {'CANCELLED'}
                 frames = int(frames_str[1])
                 hz = int(hz_str[1])
@@ -53,9 +53,15 @@ class ACRI_OT_animate(Operator):
     bl_description = "Apply animation data to selected objects"
 
     def execute(self, context):
+        props = context.scene.acreplay_importer_props
+
+        if props.chassis_object is None and props.wheelfl_object is None and props.wheelfr_object is None and \
+            props.wheelrl_object is None and props.wheelrr_object is None:
+                self.report({'WARNING'}, "Chassis and wheel objects are empty")
+                return {'CANCELLED'}
+
         context.window.cursor_set("WAIT")
 
-        props = context.scene.acreplay_importer_props
         with open(props.acrcsv_filepath, 'r', newline='') as f:
             def fix_bools(data):
                 return [x if x != 'true' and x != 'false' else (1 if x == 'true' else 0) for x in data]
@@ -117,7 +123,7 @@ class ACRI_OT_animate(Operator):
 
         if 'FINISHED' in status:
             context.window.cursor_modal_restore()
-            context.scene.frame_end = ceil(props.target_framerate*props.num_frames*props.recording_interval/1000.0)
+            context.scene.frame_end = props.start_frame+ceil(props.target_framerate*props.num_frames*props.recording_interval/1000.0)
         return status
 
 

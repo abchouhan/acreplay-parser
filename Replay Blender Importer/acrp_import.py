@@ -1,6 +1,6 @@
 import os
 import bpy
-from math import pi
+from math import radians
 from mathutils import Quaternion
 import numpy as np
 
@@ -48,11 +48,11 @@ chassis_properties = [
     custom_property("brake",                  "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/2.55),
     custom_property("velocity",               "VELOCITY", [0.0,0.0,0.0], f2_range,   "LINEAR"),
     custom_property("rpm",                    "NONE",          0.0, f2_range,        "LINEAR"),
-    custom_property("steerAngle",             "ANGLE",         0.0, (-360.0, 360.0), "LINEAR",   lambda x: -x*pi/180.0),
+    custom_property("steerAngle",             "ANGLE",         0.0, (-360.0, 360.0), "LINEAR",   np.vectorize(lambda x: -radians(x))),
     custom_property("gear",                   "NONE",            0, ( -1, 254),      "CONSTANT", lambda x: x-1, desc="-1: reverse, 0: neutral, 1: 1st gear, 2: 2nd gear, etc"),
-    custom_property("boost",                  "FACTOR",        0.0, (0.0, 1.0),      "LINEAR",   lambda x: x/255),
+    custom_property("boost",                  "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/0.51),
     custom_property("fuel",                   "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/2.55),
-    custom_property("fuelPerLap",             "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/2.55, desc="Amount of fuel predicted to be used, based on average per-lap fuel consumption"),
+    custom_property("fuelPerLap",             "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/2.55, desc="Amount of fuel predicted to be used, based on average per-lap fuel consumption (100% on first lap)"),
     custom_property("lights",                 "NONE",        False, None,            "CONSTANT", desc="Whether headlights, taillights, instrument lights, etc. are on"),
     custom_property("horn",                   "NONE",        False, None,            "CONSTANT"),
     custom_property("dirt",                   "PERCENTAGE",    0.0, (0.0, 100.0),    "LINEAR",   lambda x: x/2.55, desc="Amount of dirt on car body"),
@@ -156,7 +156,8 @@ def keyframe_loc_rot(obj, action, frames, num_frames, loc, rot):
                       Quaternion(x, rot[0][i]) @
                       Quaternion(y, rot[1][i]))[:]
         # Negate the quaternion if it results in a smaller delta between frames
-        # This prevents incorrect interpolation
+        # This (usually) prevents incorrect interpolation
+        # TODO investigate interpolation issues
         if i > 0:
             diff = np.linalg.norm(quat[i][:]-quat[i-1][:])
             negated_diff = np.linalg.norm(-1*quat[i][:]-quat[i-1][:])

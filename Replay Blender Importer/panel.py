@@ -1,6 +1,7 @@
 import os
 import bpy
 from bpy.types import Panel
+from math import ceil
 
 
 class ACRI_PT_panel(Panel):
@@ -28,13 +29,16 @@ class ACRI_PT_panel(Panel):
 
         row = layout.row()
         layout.prop(props, "target_framerate")
+        layout.prop(props, "start_frame")
+        if acrcsv_filepath and recording_interval != 0:
+            layout.label(text=(f"End Frame: {props.start_frame+ceil(props.target_framerate*props.num_frames*recording_interval/1000.0)}"))
         row = layout.row()
         layout.prop_search(props, "chassis_object", scn, "objects", icon="AUTO")
         layout.prop_search(props, "wheelfl_object", scn, "objects", icon="DISC")
         layout.prop_search(props, "wheelfr_object", scn, "objects", icon="DISC")
         layout.prop_search(props, "wheelrl_object", scn, "objects", icon="DISC")
         layout.prop_search(props, "wheelrr_object", scn, "objects", icon="DISC")
-        layout.label(text="For static elements near the wheel that don't rotate (e.g., brake calipers):")
+        layout.label(text="For objects that move with the wheel but don't rotate (e.g., brake calipers, suspension objects):")
         layout.prop_search(props, "wheelstaticfl_object", scn, "objects")
         layout.prop_search(props, "wheelstaticfr_object", scn, "objects")
         layout.prop_search(props, "wheelstaticrl_object", scn, "objects")

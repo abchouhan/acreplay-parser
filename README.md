@@ -39,7 +39,7 @@ In the 'Replay Parser' folder, run the following command:
 cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 ```
 This will create a `Makefile` in the 'build' subfolder.
-<br>
+
 Finish building the executable:
 ```
 cmake --build build --parallel
@@ -48,27 +48,18 @@ The executable will be located in the 'build' subfolder.
 
 ## Addon
 ### Installation
-- For Blender versions ≥ 4.2.0
-  - Install through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer/)
-- For Blender versions ≥ 3.0.0
-  - Download the latest 'Replay Blender Importer' zip file from the [Releases](https://github.com/abchouhan/acreplay-parser/releases) page
-  - In Blender go to Edit → Preferences and click 'Install', navigate to the downloaded file
-  - Enable the addon
+- Install through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer/)
 
 ### Usage
 - Open the sidebar by going to View → Sidebar, or by pressing the <kbd>N</kbd> key
 - Go to the Animation tab and locate the 'AC Replay Importer' dropdown
 - Click 'Import .csv' and navigate to the `.csv` file outputted by the [parser](#parser)
-- Adjust framerate if necessary
+- Adjust framerate and starting frame if necessary
 - Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=ZBwSbNptEmM))
 
 ### Building
-#### For Blender 4.2.0 and beyond
 In the 'Replay Blender Importer' folder, run the following command:
 ```
 blender --command extension build
 ```
 This creates a zip file 'acreplay_importer-x.x.x.zip' which can be installed in Blender.
-#### For Blender 3.0.0-4.1.x
-WIP
-<!-- See the [0.2.0 Blender 3.0.0 branch](https://github.com/abchouhan/acreplay-parser/tree/0.2.0_blender-3.0.0?tab=readme-ov-file#building-1) -->

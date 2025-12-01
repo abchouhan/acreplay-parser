@@ -12,7 +12,8 @@
 #include "UtilsData.hpp"
 
 /**
- * Parses and outputs .acreplay files.
+ * Structure definitions for data found in .acreplay files,
+ * including functions for parsing and outputting.
  */
 
 // Output file extension
@@ -218,7 +219,7 @@ struct CarFrameExtra_v6 {
 	uint32_t i4;
 	uint32_t i5;
 
-	uint8_t b;
+	uint8_t b; // Usually 2
 
 	uint8_t wipers; // 0: off, 1: lowest speed, ..., 4: highest speed
 
@@ -241,7 +242,7 @@ struct CarFrameExtra_v6 {
 	*/
 
 	uint8_t handbrake; // Handbrake amount from 0 to 255
-	uint8_t b2; // Usually 2
+	uint8_t b2;
 
 	uint8_t b3;
 	uint8_t b4;
