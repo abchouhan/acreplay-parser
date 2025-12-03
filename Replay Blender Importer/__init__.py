@@ -2,6 +2,9 @@ import bpy
 from bpy.props import StringProperty, IntProperty, FloatProperty, PointerProperty
 from . import operators, panel
 
+import numpy as np
+from math import ceil
+
 
 class ACReplayImporterProperties(bpy.types.PropertyGroup):
 	acrcsv_filepath:        StringProperty(default="")
@@ -27,11 +30,12 @@ def manual_map():
 
 modules = [operators, panel]
 
-def ac_lut(zero, step, lut, x):
+# Linearly interpolate an input based on given lookup table values
+def ac_lut(lut, x):
     if lut[0] == "(" and lut[-1] == ")":
         lut = np.array([[int(c) for c in r.split("=")] for r in lut[1:-1].split("|")])
     else:
-        return step*x+zero
+        return 0
 
     if (x >= lut[-1][0]):
         upper = -1
@@ -43,11 +47,27 @@ def ac_lut(zero, step, lut, x):
 
     return (lut[lower][1]-lut[upper][1])/(lut[lower][0]-lut[upper][0]) * (x-lut[lower][0]) + lut[lower][1]
 
+# Dynamically interpolate keyframed discrete properties
+# given current value, fcurve, interpolation time, and keyframe offset (forward vs. backward)
+def ac_interpolate_discrete(val, fc, time, forward=False):
+    scene = bpy.context.scene
+    frame = scene.frame_current
+    fps = scene.render.fps/scene.render.fps_base
+    frames = ceil(time*fps)
+
+    for x in range(frames):
+        if forward: next_val = fc.evaluate(frame+x)
+        else:       next_val = fc.evaluate(frame-x)
+        if next_val != val:
+            return (next_val-val)/frames*(frames-x)+val
+    return val
+
 
 def register():
     bpy.utils.register_class(ACReplayImporterProperties)
     bpy.types.Scene.acreplay_importer_props = bpy.props.PointerProperty(type=ACReplayImporterProperties)
     bpy.app.driver_namespace["ac_lut"] = ac_lut
+    bpy.app.driver_namespace["ac_interpolate_discrete"] = ac_interpolate_discrete
     for m in modules:
         m.register()
     bpy.utils.register_manual_map(manual_map)
@@ -56,6 +76,7 @@ def unregister():
     bpy.utils.unregister_manual_map(manual_map)
     for m in reversed(modules):
         m.unregister()
+    del bpy.app.driver_namespace["ac_interpolate_discrete"]
     del bpy.app.driver_namespace["ac_lut"]
     del bpy.types.Scene.acreplay_importer_props
     bpy.utils.unregister_class(ACReplayImporterProperties)

@@ -44,9 +44,14 @@ class ACRI_PT_panel(Panel):
         layout.prop_search(props, "wheelstaticrl_object", scn, "objects")
         layout.prop_search(props, "wheelstaticrr_object", scn, "objects")
 
-        if acrcsv_filepath:
-            row = layout.row()
-            row.operator("scene.acreplay_animate", text="Animate", icon="NONE")
+        # If csv file selected and at least one object selected, show Animate button
+        if acrcsv_filepath and (props.chassis_object is not None or \
+            props.wheelfl_object is not None or props.wheelfr_object is not None or \
+            props.wheelrl_object is not None or props.wheelrr_object is not None or \
+            props.wheelstaticfl_object is not None or props.wheelstaticfr_object is not None or \
+            props.wheelstaticrl_object is not None or props.wheelstaticrr_object is not None):
+                row = layout.row()
+                row.operator("scene.acreplay_animate", text="Animate", icon="NONE")
 
 
 classes = [ACRI_PT_panel]

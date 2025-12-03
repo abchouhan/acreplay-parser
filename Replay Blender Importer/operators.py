@@ -53,14 +53,8 @@ class ACRI_OT_animate(Operator):
     bl_description = "Apply animation data to selected objects"
 
     def execute(self, context):
-        props = context.scene.acreplay_importer_props
-
-        if props.chassis_object is None and props.wheelfl_object is None and props.wheelfr_object is None and \
-            props.wheelrl_object is None and props.wheelrr_object is None:
-                self.report({'WARNING'}, "Chassis and wheel objects are empty")
-                return {'CANCELLED'}
-
         context.window.cursor_set("WAIT")
+        props = context.scene.acreplay_importer_props
 
         with open(props.acrcsv_filepath, 'r', newline='') as f:
             def fix_bools(data):
