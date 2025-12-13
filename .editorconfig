@@ -1,3 +1,7 @@
-[*]
+[Replay Parser/**/*]
 indent_style = tab
+indent_size = 4
+
+[Replay Blender Importer/*]
+indent_style = space
 indent_size = 4
