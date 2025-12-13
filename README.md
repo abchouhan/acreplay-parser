@@ -1,11 +1,12 @@
 # acreplay-parser
 This software consists of two parts: a [parser](#parser) for Assetto Corsa replay (.acreplay) files, and an [addon](#addon) to import the parsed data into Blender.
-A video guide is available [here](https://youtube.com/watch?v=ZBwSbNptEmM).
+A video guide is available [here](https://youtube.com/watch?v=qUMzwA75Y1M).
 
 <img src="https://github.com/abchouhan/acreplay-parser/assets/21346078/a9b80a66-d797-4846-9450-b21c15aa8d82" width="49.5%"/>
 <img src="https://github.com/abchouhan/acreplay-parser/assets/21346078/0fc20366-2266-4adc-a2c3-939e418b9602" width="49.5%"/>
 
 ### Animations made with this tool
+[![](https://i.ytimg.com/vi/DplY1kiFDxA/mqdefault.jpg)](https://youtu.be/DplY1kiFDxA)
 [![](https://i.ytimg.com/vi/9eqhbMJGpvg/mqdefault.jpg)](https://youtu.be/9eqhbMJGpvg)
 
 ## Parser
@@ -48,14 +49,15 @@ The executable will be located in the 'build' subfolder.
 
 ## Addon
 ### Installation
-- Install through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer/)
+- In Blender, go to Edit → Preferences → Get Extensions, search for 'AC Replay Importer', and click 'Install'
+- Alternatively, install through [Blender Extensions](https://extensions.blender.org/add-ons/acreplay-importer/)
 
 ### Usage
 - Open the sidebar by going to View → Sidebar, or by pressing the <kbd>N</kbd> key
 - Go to the Animation tab and locate the 'AC Replay Importer' dropdown
 - Click 'Import .csv' and navigate to the `.csv` file outputted by the [parser](#parser)
 - Adjust framerate and starting frame if necessary
-- Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=ZBwSbNptEmM))
+- Assign the Chassis and Wheel slots appropriately (see [video guide](https://youtube.com/watch?v=qUMzwA75Y1M))
 
 ### Building
 In the 'Replay Blender Importer' folder, run the following command:

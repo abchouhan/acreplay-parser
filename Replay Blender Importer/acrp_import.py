@@ -252,7 +252,7 @@ def animate(self, acrp_props, data):
         return {'CANCELLED'}
 
     factor = acrp_props.target_framerate/(1000.0/acrp_props.recording_interval)
-    frames = [factor*(i+1) for i in range(0, acrp_props.num_frames)]
+    frames = [factor*i+acrp_props.start_frame for i in range(0, acrp_props.num_frames)]
 
     if acrp_props.chassis_object:
         if action is None:
@@ -274,6 +274,12 @@ def animate(self, acrp_props, data):
                 keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, data[prop.name])
             elif prop.name == "highBeams" and "lowBeams" in fields:
                 keyframe_custom_property(acrp_props.chassis_object, action, frames, acrp_props.num_frames, prop, data["lowBeams"])
+
+    if acrp_props.wheelfl_object is None and acrp_props.wheelstaticfl_object is None and \
+        acrp_props.wheelfr_object is None and acrp_props.wheelstaticfr_object is None and \
+        acrp_props.wheelrl_object is None and acrp_props.wheelstaticrl_object is None and \
+        acrp_props.wheelrr_object is None and acrp_props.wheelstaticrr_object is None:
+        return {'FINISHED'}
 
     wheels = ["FL", "FR", "RL", "RR"]
     for i in range(len(wheels)):

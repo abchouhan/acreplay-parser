@@ -117,7 +117,8 @@ class ACRI_OT_animate(Operator):
 
         if 'FINISHED' in status:
             context.window.cursor_modal_restore()
-            context.scene.frame_end = props.start_frame+ceil(props.target_framerate*props.num_frames*props.recording_interval/1000.0)
+            context.scene.frame_start = min(context.scene.frame_start, props.start_frame)
+            context.scene.frame_end = max(context.scene.frame_end, props.start_frame+ceil(props.target_framerate*props.num_frames*props.recording_interval/1000.0)-1)
         return status
 
 

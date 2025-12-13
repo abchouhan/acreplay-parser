@@ -31,7 +31,7 @@ class ACRI_PT_panel(Panel):
         layout.prop(props, "target_framerate")
         layout.prop(props, "start_frame")
         if acrcsv_filepath and recording_interval != 0:
-            layout.label(text=(f"End Frame: {props.start_frame+ceil(props.target_framerate*props.num_frames*recording_interval/1000.0)}"))
+            layout.label(text=(f"End Frame: {props.start_frame+ceil(props.target_framerate*props.num_frames*recording_interval/1000.0)-1}"))
         row = layout.row()
         layout.prop_search(props, "chassis_object", scn, "objects", icon="AUTO")
         layout.prop_search(props, "wheelfl_object", scn, "objects", icon="DISC")
