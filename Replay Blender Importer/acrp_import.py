@@ -255,7 +255,7 @@ def animate(self, acrp_props, data):
     frames = [factor*i+acrp_props.start_frame for i in range(0, acrp_props.num_frames)]
 
     if acrp_props.chassis_object:
-        if action is None:
+        if not use_slots:
             action = bpy.data.actions.new("Chassis Action")
         keyframe_loc_rot(acrp_props.chassis_object, action, frames, acrp_props.num_frames,
                 [data["position.x"], -data["position.z"], data["position.y"]],  # Swap Y and Z axes for Blender, and negate Z axis
@@ -326,7 +326,7 @@ def animate(self, acrp_props, data):
                     static_obj = None
 
             if obj is not None:
-                if action is None:
+                if not use_slots:
                     action = bpy.data.actions.new(f"{wheels[i]} Wheel Action")
                 keyframe_loc_rot(obj, action, frames, acrp_props.num_frames, pos_arr, rot_arr)
                 for prop in wheel_properties:
@@ -335,7 +335,7 @@ def animate(self, acrp_props, data):
                     else:
                         self.report({'ERROR'}, f".csv file does not contain {wheel}.{prop.name} column")
             if static_obj is not None:
-                if action is None:
+                if not use_slots:
                     action = bpy.data.actions.new(f"{wheels[i]} Wheel Static Action")
                 keyframe_loc_rot(static_obj, action, frames, acrp_props.num_frames, pos_static_arr, rot_static_arr)
         else:
